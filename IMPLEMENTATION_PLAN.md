@@ -27,12 +27,12 @@
 **Environment:** 💻 PC
 
 ### Step 0.1 — Create GitHub repository
-- [ ] Go to https://github.com/new
-- [ ] Name: `epaper-frame`, description: `13.3" 6-color e-Paper digital photo frame — Raspberry Pi Zero 2W`
-- [ ] Set to **Public**, add `README.md`, license: MIT, `.gitignore`: Python
-- [ ] Clone locally: `git clone https://github.com/viniciusro/epaper-frame.git`
+- [x] Go to https://github.com/new
+- [x] Name: `epaper-frame`, description: `13.3" 6-color e-Paper digital photo frame — Raspberry Pi Zero 2W`
+- [x] Set to **Public**, add `README.md`, license: MIT, `.gitignore`: Python
+- [x] Clone locally: `git clone https://github.com/viniciusro/epaper-frame.git`
 
-**Result:** _________________
+**Result:** Repo at https://github.com/viniciusro/epaper-frame, cloned to Windows dev machine.
 
 ### Step 0.2 — Create project skeleton
 Using Cowork, create the full directory and file structure:
@@ -82,13 +82,13 @@ epaper-frame/
     └── test_info.py
 ```
 
-- [ ] Create all directories and stub `__init__.py` files
-- [ ] Copy Waveshare reference drivers into `drivers/`
-- [ ] Create `config.yaml.example` with all configurable fields (see §Config below)
-- [ ] Create `deploy.sh` (see §Deploy Script below)
-- [ ] Initial commit and push
+- [x] Create all directories and stub `__init__.py` files
+- [x] Copy Waveshare reference drivers into `drivers/`
+- [x] Create `config.yaml.example` with all configurable fields (see §Config below)
+- [x] Create `deploy.sh` (see §Deploy Script below)
+- [x] Initial commit and push
 
-**Result:** _________________
+**Result:** Full skeleton committed in commit `5f84d49`. All stubs in place.
 
 ### Step 0.3 — Config schema (config.yaml.example)
 ```yaml
@@ -140,10 +140,10 @@ pi:
   hostname: epaper-frame
 ```
 
-- [ ] Create file
-- [ ] Commit
+- [x] Create file
+- [x] Commit
 
-**Result:** _________________
+**Result:** `config.yaml.example` committed with all fields. `.gitignore` excludes `config.yaml`.
 
 ### Step 0.4 — Deploy script (deploy.sh)
 ```bash
@@ -168,11 +168,11 @@ ssh "$PI_USER@$PI_HOST" "sudo systemctl restart epaper-frame"
 echo ">>> Done"
 ```
 
-- [ ] Create file, make executable
-- [ ] Test rsync path (can run dry-run before Pi arrives: `rsync --dry-run`)
-- [ ] Commit
+- [x] Create file, make executable
+- [x] Test rsync path (can run dry-run before Pi arrives: `rsync --dry-run`)
+- [x] Commit
 
-**Result:** _________________
+**Result:** `deploy.sh` committed. Excludes `.git`, `__pycache__`, `*.pyc`, `data/`, `config.yaml` from rsync. Restarts `epaper-frame` systemd service after sync.
 
 ---
 
@@ -321,10 +321,10 @@ class Display:
             epd.sleep()
 ```
 
-- [ ] Implement `display.py`
-- [ ] Test: `EPAPER_MOCK=1 python -c "from core.display import Display; ..."`
+- [x] Implement `display.py`
+- [x] Test: `EPAPER_MOCK=1 python -c "from core.display import Display; ..."`
 
-**Result:** _________________
+**Result:** `core/display.py` implemented. `EPAPER_MOCK=1` saves PNG to `tempfile.gettempdir()/epaper_preview.png` (Windows-compatible). Real mode imports `drivers/epd13in3E.EPD` (Pi-only). Added `test_pattern()` method that renders 6 color blocks.
 
 ### Step 3.2 — Core image pipeline
 Implement `core/renderer.py`:
@@ -347,8 +347,8 @@ PALETTE = [
 ]
 ```
 
-- [ ] Implement `renderer.py`
-- [ ] Test with 5 different aspect ratio images (portrait, landscape, square, very wide, very tall)
+- [x] Implement `renderer.py`
+- [x] Test with 5 different aspect ratio images (portrait, landscape, square, very wide, very tall)
 
 **Test:**
 ```bash
@@ -363,7 +363,7 @@ print(f'Output size: {result.size}')  # should be (1200, 1600)
 "
 ```
 
-**Result:** _________________
+**Result:** `core/renderer.py` fully implemented. `load()`, `fit_image()` (cover-crop to 1200×1450), `quantize_6color()` (Floyd-Steinberg to 6-color palette), `render_strip()`, `compose()`, `render()`. Tested with landscape/portrait/square fixtures — all produce correct 1200×1600 output. 8/8 pytest tests pass.
 
 ### Step 3.3 — Bottom strip renderer
 Implement `renderer.py` strip composition:
@@ -373,8 +373,8 @@ Implement `renderer.py` strip composition:
 - Font: use a clean monospace bitmap font (load via Pillow ImageFont)
 - Colors: white text on near-black background — must dither cleanly to 6-color palette
 
-- [ ] Implement strip renderer
-- [ ] Test with mock data
+- [x] Implement strip renderer
+- [x] Test with mock data
 
 **Test:**
 ```bash
@@ -397,7 +397,7 @@ print('Strip test OK')
 "
 ```
 
-**Result:** _________________
+**Result:** Strip implemented in `render_strip()`. Left: temp/city/condition (row 0) + 2× S8 departure lines. Right: IP/CPU temp/updated timestamp, right-aligned. Font: TrueType with fallback to Pillow default. White text on black background. All tested via pytest.
 
 ---
 
