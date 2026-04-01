@@ -694,7 +694,7 @@ class FrameController:
 - [x] Test with mock display: `EPAPER_MOCK=1 python main.py`
 - [ ] Verify photo changes after configured interval — deferred to Phase 9 (HW)
 
-**Result:** Full implementation. State machine: idle→rendering→refreshing→idle. `_do_display_cycle()` syncs Nextcloud, grabs info snapshot, shuffles, renders, pushes to display. `main.py` sets up dual-sink logging (stdout + `logs/epaper-frame.log`). 6 controller tests pass.
+**Result:** Full implementation. State machine: idle→rendering→refreshing→idle. `_do_display_cycle()` syncs Nextcloud, grabs info snapshot, shuffles, renders, pushes to display. `main.py` sets up dual-sink logging (stdout + `logs/epaper-frame.log`). 6 controller tests pass. Mock run validated: photo selected from `tests/fixtures`, preview PNG saved to temp dir, no errors. Fixed: `sources/local.py` now logs WARNING when path missing; `config.yaml` pointed at `tests/fixtures` for Windows dev.
 
 ### Step 8.2 — Concurrent info refresh
 - Weather and transit fetch on background threads (don't block display update)

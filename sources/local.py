@@ -1,5 +1,8 @@
+import logging
 from pathlib import Path
 from sources.base import PhotoSource
+
+logger = logging.getLogger(__name__)
 
 _IMAGE_SUFFIXES = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 
@@ -15,6 +18,7 @@ class LocalFolderSource(PhotoSource):
 
     def list_photos(self):
         if not self._path.exists():
+            logger.warning('Local folder does not exist: %s', self._path)
             return []
         photos = [
             p for p in self._path.rglob('*')
