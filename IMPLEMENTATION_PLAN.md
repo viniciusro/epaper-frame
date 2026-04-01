@@ -430,9 +430,9 @@ class PhotoSource(ABC):
         pass
 ```
 
-- [ ] Implement `base.py`
+- [x] Implement `base.py`
 
-**Result:** _________________
+**Result:** Already implemented in Phase 0 skeleton. `PhotoSource` ABC with `list_photos()`, `sync()`, `name` abstract members.
 
 ### Step 4.2 — Local folder source
 Implement `sources/local.py`:
@@ -440,10 +440,10 @@ Implement `sources/local.py`:
 - `list_photos()` returns all valid image paths
 - `sync()` is a no-op (already local)
 
-- [ ] Implement `local.py`
-- [ ] Test: point at a folder with mixed file types, verify only images returned
+- [x] Implement `local.py`
+- [x] Test: point at a folder with mixed file types, verify only images returned
 
-**Result:** _________________
+**Result:** Recursive scan via `Path.rglob`, case-insensitive suffix check, hidden files excluded. `sync()` is a no-op. Tested via pytest (4 tests pass).
 
 ### Step 4.3 — Nextcloud source (WebDAV)
 Implement `sources/nextcloud.py`:
@@ -452,9 +452,9 @@ Implement `sources/nextcloud.py`:
 - Uses ETag / Last-Modified for incremental sync (don't re-download unchanged files)
 - `list_photos()` returns cached local paths
 
-- [ ] Add `webdavclient3` to `requirements.txt`
-- [ ] Implement `nextcloud.py`
-- [ ] Test: connect to a real Nextcloud instance, sync 5 photos
+- [x] Add `webdavclient3` to `requirements.txt`
+- [x] Implement `nextcloud.py`
+- [ ] Test: connect to a real Nextcloud instance, sync 5 photos (deferred — needs HW/server)
 
 **Test:**
 ```bash
@@ -469,7 +469,7 @@ print(f'Synced {n} new, total {len(photos)} photos')
 "
 ```
 
-**Result:** _________________
+**Result:** ETag-based incremental sync to `data/cache/nextcloud/`, metadata in `.sync_meta.json`. Connection errors logged as warnings, returns cached files. Real-server test deferred to Phase 9 integration.
 
 ### Step 4.4 — Upload source
 Implement `sources/upload.py`:
@@ -477,10 +477,10 @@ Implement `sources/upload.py`:
 - Validates image format and minimum size
 - Returns the saved path
 
-- [ ] Implement `upload.py`
-- [ ] Test: upload a JPEG and a non-image file (should reject)
+- [x] Implement `upload.py`
+- [x] Test: upload a JPEG and a non-image file (should reject)
 
-**Result:** _________________
+**Result:** `save(file_storage, destination_folder)` validates via PIL `verify()`, raises `ValueError` for non-images and corrupt files. `list_photos()` uses same recursive scan as LocalFolderSource. 5 tests pass.
 
 ---
 
@@ -495,8 +495,8 @@ Implement `info/weather.py`:
 - Returns: `{'temp': float, 'condition': str, 'city': str, 'updated': datetime}`
 - Handle API errors gracefully (return last cached value or None)
 
-- [ ] Implement `weather.py`
-- [ ] Test: fetch live data, verify structure
+- [x] Implement `weather.py`
+- [x] Test: fetch live data, verify structure
 
 **Test:**
 ```bash
@@ -510,7 +510,7 @@ print(data)
 "
 ```
 
-**Result:** _________________
+**Result:** OpenWeatherMap `/weather` endpoint, `time.monotonic()` cache, returns `{temp, condition, city, updated}`. Error returns last cache or None. 4 unit tests pass (live test skipped without config.yaml).
 
 ### Step 5.2 — Transit fetcher (MVG S8)
 Implement `info/transit.py`:
@@ -521,8 +521,8 @@ Implement `info/transit.py`:
 - Cache 2 minutes
 - Returns: `[{'time': 'HH:MM', 'delay': int}, ...]`
 
-- [ ] Implement `transit.py`
-- [ ] Test: verify direction filter works, delay calculation correct
+- [x] Implement `transit.py`
+- [x] Test: verify direction filter works, delay calculation correct
 
 **Test:**
 ```bash
@@ -536,7 +536,7 @@ print(data)
 "
 ```
 
-**Result:** _________________
+**Result:** MVG API, filters by `label == line` AND `destination` contains `direction_filter` (case-insensitive). Delay = `(realtime - planned) / 60000` rounded. Returns `[{time, delay, destination}]`. 5 tests pass including live MVG API call.
 
 ### Step 5.3 — Pi stats
 Implement `info/pi_stats.py`:
@@ -546,11 +546,11 @@ Implement `info/pi_stats.py`:
 - No caching needed (cheap to read)
 - Returns: `{'ip': str, 'cpu_temp': float, 'hostname': str}`
 
-- [ ] Implement `pi_stats.py`
-- [ ] Test on Windows (IP works, CPU temp returns `None` gracefully)
-- [ ] Test on Pi (all fields populated)
+- [x] Implement `pi_stats.py`
+- [x] Test on Windows (IP works, CPU temp returns `None` gracefully)
+- [ ] Test on Pi (all fields populated) — deferred to Phase 9
 
-**Result:** _________________
+**Result:** Added `updated` field (`HH:MM`). CPU temp reads `/sys/class/thermal/thermal_zone0/temp`, returns `None` on Windows. IP falls back to `'0.0.0.0'` on error. 4 tests pass on Windows.
 
 ---
 
