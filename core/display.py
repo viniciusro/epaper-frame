@@ -5,8 +5,6 @@ from PIL import Image, ImageDraw
 
 logger = logging.getLogger(__name__)
 
-MOCK = os.environ.get('EPAPER_MOCK', '0') == '1'
-
 # Palette used for test_pattern — matches EPD 6-color palette
 _COLORS = [
     ((0, 0, 0), 'Black'),
@@ -22,8 +20,13 @@ class Display:
     WIDTH = 1200
     HEIGHT = 1600
 
+    @property
+    def MOCK(self):
+        """Read EPAPER_MOCK at call time so it works when set after import."""
+        return os.environ.get('EPAPER_MOCK', '0') == '1'
+
     def show(self, image: Image.Image):
-        if MOCK:
+        if self.MOCK:
             out = os.path.join(tempfile.gettempdir(), 'epaper_preview.png')
             image.save(out)
             logger.info('[MOCK] Saved preview to %s', out)
@@ -35,7 +38,7 @@ class Display:
             epd.sleep()
 
     def sleep(self):
-        if MOCK:
+        if self.MOCK:
             logger.info('[MOCK] Display sleep (no-op)')
         else:
             from drivers.epd13in3E import EPD
