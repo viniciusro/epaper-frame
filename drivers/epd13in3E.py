@@ -27,7 +27,7 @@
 # THE SOFTWARE.
 #
 import time
-import epdconfig
+import drivers.epdconfig as epdconfig
 
 import PIL
 from PIL import Image

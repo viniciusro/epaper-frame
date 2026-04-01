@@ -52,24 +52,25 @@ find_dirs = [
     '/usr/lib',
 ]
 spi = None
-for find_dir in find_dirs:
-    val = int(os.popen('getconf LONG_BIT').read())
-    val_1 = os.popen("cat /proc/cpuinfo | grep 'Raspberry Pi 5'").read()
-    if val == 64:
-        if val_1 == "":
-            so_filename = os.path.join(find_dir, 'DEV_Config_64_b.so')
+if os.environ.get('EPAPER_MOCK', '0') != '1':
+    for find_dir in find_dirs:
+        val = int(os.popen('getconf LONG_BIT').read())
+        val_1 = os.popen("cat /proc/cpuinfo | grep 'Raspberry Pi 5'").read()
+        if val == 64:
+            if val_1 == "":
+                so_filename = os.path.join(find_dir, 'DEV_Config_64_b.so')
+            else:
+                so_filename = os.path.join(find_dir, 'DEV_Config_64_w.so')
         else:
-            so_filename = os.path.join(find_dir, 'DEV_Config_64_w.so')
-    else:
-        if val_1 == "":
-            so_filename = os.path.join(find_dir, 'DEV_Config_32_b.so')
-        else:
-            so_filename = os.path.join(find_dir, 'DEV_Config_32_w.so')
-    if os.path.exists(so_filename):
-        spi = CDLL(so_filename)
-        break
-if spi is None:
-    RuntimeError('Cannot find DEV_Config.so')
+            if val_1 == "":
+                so_filename = os.path.join(find_dir, 'DEV_Config_32_b.so')
+            else:
+                so_filename = os.path.join(find_dir, 'DEV_Config_32_w.so')
+        if os.path.exists(so_filename):
+            spi = CDLL(so_filename)
+            break
+    if spi is None:
+        RuntimeError('Cannot find DEV_Config.so')
 
 def digital_write(pin, value):
     spi.DEV_Digital_Write(pin, value)

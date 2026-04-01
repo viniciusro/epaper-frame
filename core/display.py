@@ -30,20 +30,20 @@ class Display:
             out = os.path.join(tempfile.gettempdir(), 'epaper_preview.png')
             image.save(out)
             logger.info('[MOCK] Saved preview to %s', out)
-        else:
-            from drivers.epd13in3E import EPD
-            epd = EPD()
-            epd.Init()
-            epd.display(epd.getbuffer(image))
-            epd.sleep()
+            return
+        from drivers.epd13in3E import EPD
+        epd = EPD()
+        epd.Init()
+        epd.display(epd.getbuffer(image))
+        epd.sleep()
 
     def sleep(self):
         if self.MOCK:
             logger.info('[MOCK] Display sleep (no-op)')
-        else:
-            from drivers.epd13in3E import EPD
-            epd = EPD()
-            epd.sleep()
+            return
+        from drivers.epd13in3E import EPD
+        epd = EPD()
+        epd.sleep()
 
     def test_pattern(self):
         """Render 6 color blocks across the full display area."""
