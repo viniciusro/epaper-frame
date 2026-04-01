@@ -733,12 +733,12 @@ sudo systemctl start epaper-frame
 sudo journalctl -u epaper-frame -f
 ```
 
-- [ ] Service file deployed — deferred to Phase 9 (HW)
-- [ ] Service starts on boot — deferred to Phase 9
-- [ ] Survives reboot — deferred to Phase 9
-- [ ] `journalctl` shows clean startup log — deferred to Phase 9
+- [x] Service file deployed — `deployment/epaper-frame.service` created
+- [ ] Service starts on boot — pending Pi arrival
+- [ ] Survives reboot — pending Pi arrival
+- [ ] `journalctl` shows clean startup log — pending Pi arrival
 
-**Result:** Service unit file content defined in plan. Deployment deferred until Pi hardware arrives (Phase 9).
+**Result:** `deployment/epaper-frame.service` with `PYTHONUNBUFFERED=1`, `Restart=always`, journal logging. `deployment/pi_setup.sh` automates venv, SPI enable, dirs, config copy, and service install on fresh Pi. `deploy.sh` updated: now also runs `pip install` and shows last 20 journal lines after restart. `deployment/PI_ARRIVAL_CHECKLIST.md` covers hardware → first boot → deploy → validate with debug tips.
 
 ---
 

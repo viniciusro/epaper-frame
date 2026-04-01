@@ -1,0 +1,19 @@
+[Unit]
+Description=e-Paper Digital Photo Frame
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/epaper-frame
+Environment=PATH=/home/pi/epaper-frame/venv/bin
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/epaper-frame/venv/bin/python main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
