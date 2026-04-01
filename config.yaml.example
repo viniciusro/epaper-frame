@@ -1,0 +1,41 @@
+display:
+  interval_minutes: 60
+  no_repeat_days: 7
+  orientation: portrait
+
+sources:
+  local_folder:
+    enabled: true
+    path: /home/pi/photos
+  upload:
+    enabled: true
+  nextcloud:
+    enabled: false
+    url: https://your.nextcloud.instance
+    username: ""
+    password: ""
+    remote_path: /Photos/frame
+    sync_interval_minutes: 30
+
+weather:
+  enabled: true
+  api_key: ""
+  city: Munich
+  country_code: DE
+  units: metric
+  refresh_interval_minutes: 30
+
+transit:
+  enabled: true
+  mvg_global_id: de:09162:1740
+  line: S8
+  direction_filter: Marienplatz
+  limit: 2
+  refresh_interval_minutes: 2
+
+web:
+  port: 80
+  secret_key: ""
+
+pi:
+  hostname: epaper-frame

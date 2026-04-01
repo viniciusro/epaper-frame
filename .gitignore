@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# epaper-frame project
+config.yaml
+data/cache/
+*.db
