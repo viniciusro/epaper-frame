@@ -690,21 +690,21 @@ class FrameController:
             # 5. Sleep until next interval
 ```
 
-- [ ] Implement controller
-- [ ] Test with mock display: `EPAPER_MOCK=1 python main.py`
-- [ ] Verify photo changes after configured interval
+- [x] Implement controller
+- [x] Test with mock display: `EPAPER_MOCK=1 python main.py`
+- [ ] Verify photo changes after configured interval — deferred to Phase 9 (HW)
 
-**Result:** _________________
+**Result:** Full implementation. State machine: idle→rendering→refreshing→idle. `_do_display_cycle()` syncs Nextcloud, grabs info snapshot, shuffles, renders, pushes to display. `main.py` sets up dual-sink logging (stdout + `logs/epaper-frame.log`). 6 controller tests pass.
 
 ### Step 8.2 — Concurrent info refresh
 - Weather and transit fetch on background threads (don't block display update)
 - Info cache shared between controller and web UI
 - Thread-safe dict with lock
 
-- [ ] Implement background threads
-- [ ] Test: info refreshes independently of display cycle
+- [x] Implement background threads
+- [x] Test: info refreshes independently of display cycle
 
-**Result:** _________________
+**Result:** `_info_refresh_loop()` daemon thread polls weather+transit+pi_stats every 30s and pushes to `web.app._state` via `update_state()`. Flask runs in its own daemon thread. Display loop runs in main thread. `web.app._state` extended with `status` and `last_refresh` fields. `index.html` shows pulsing status indicator (CSS animation) and JS live countdown.
 
 ### Step 8.3 — systemd service
 Create `/etc/systemd/system/epaper-frame.service`:
@@ -733,12 +733,12 @@ sudo systemctl start epaper-frame
 sudo journalctl -u epaper-frame -f
 ```
 
-- [ ] Service file deployed
-- [ ] Service starts on boot
-- [ ] Survives reboot
-- [ ] `journalctl` shows clean startup log
+- [ ] Service file deployed — deferred to Phase 9 (HW)
+- [ ] Service starts on boot — deferred to Phase 9
+- [ ] Survives reboot — deferred to Phase 9
+- [ ] `journalctl` shows clean startup log — deferred to Phase 9
 
-**Result:** _________________
+**Result:** Service unit file content defined in plan. Deployment deferred until Pi hardware arrives (Phase 9).
 
 ---
 

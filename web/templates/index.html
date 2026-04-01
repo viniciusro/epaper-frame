@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="30">
   <title>epaper-frame</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,6 +28,13 @@
     button:hover, .btn:hover { background: #444; }
     .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
     .dim { color: #666; font-size: 0.8rem; }
+
+    /* Status indicator */
+    .status-idle       { color: #4caf50; }
+    .status-rendering  { color: #ff9800; }
+    .status-refreshing { color: #2196f3; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .pulsing { animation: pulse 1.2s ease-in-out infinite; }
   </style>
 </head>
 <body>
@@ -38,13 +44,27 @@
 <!-- Status -->
 <section>
   <h2>Status</h2>
+  <div class="row">
+    <span class="label">Display</span>
+    <span class="value
+      {% if status == 'rendering' %}status-rendering pulsing
+      {% elif status == 'refreshing' %}status-refreshing pulsing
+      {% else %}status-idle{% endif %}">
+      {% if status == 'rendering' %}rendering…
+      {% elif status == 'refreshing' %}refreshing… (~30s)
+      {% else %}idle{% endif %}
+    </span>
+  </div>
   <div class="row"><span class="label">Current photo</span><span class="value">{{ last_photo or '—' }}</span></div>
-  <div class="row"><span class="label">Next refresh</span><span class="value">
-    {% if next_in is not none %}
-      {% set m = (next_in // 60) %}{% set s = (next_in % 60) %}
-      {{ '%d:%02d' | format(m, s) }}
-    {% else %}—{% endif %}
-  </span></div>
+  <div class="row">
+    <span class="label">Next refresh</span>
+    <span class="value" id="countdown">
+      {% if next_in is not none %}
+        {% set m = (next_in // 60) %}{% set s = (next_in % 60) %}
+        {{ '%d:%02d' | format(m, s) }}
+      {% else %}—{% endif %}
+    </span>
+  </div>
 </section>
 
 <!-- Weather -->
@@ -108,6 +128,42 @@
     <a class="btn" href="/preview" target="_blank">Preview</a>
   </div>
 </section>
+
+<script>
+  // Live countdown — counts down from server-provided value, reloads at 0
+  (function () {
+    var el = document.getElementById('countdown');
+    var raw = "{{ next_in if next_in is not none else '' }}";
+    if (!raw) return;
+    var secs = parseInt(raw, 10);
+    if (isNaN(secs)) return;
+
+    function fmt(s) {
+      var m = Math.floor(s / 60);
+      var ss = s % 60;
+      return m + ':' + (ss < 10 ? '0' : '') + ss;
+    }
+
+    el.textContent = fmt(secs);
+    var iv = setInterval(function () {
+      secs--;
+      if (secs <= 0) {
+        clearInterval(iv);
+        location.reload();
+      } else {
+        el.textContent = fmt(secs);
+      }
+    }, 1000);
+  })();
+
+  // Auto-reload when status is rendering/refreshing (poll for completion)
+  (function () {
+    var status = "{{ status }}";
+    if (status === 'rendering' || status === 'refreshing') {
+      setTimeout(function () { location.reload(); }, 3000);
+    }
+  })();
+</script>
 
 </body>
 </html>

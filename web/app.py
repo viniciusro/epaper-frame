@@ -15,6 +15,8 @@ _CONFIG_PATH = Path('config.yaml')
 _state = {
     'last_photo': None,       # Path or None
     'next_update_at': None,   # datetime or None
+    'last_refresh': None,     # datetime or None
+    'status': 'idle',         # idle | rendering | refreshing
     'weather': None,
     'transit': [],
     'pi': {},
@@ -69,6 +71,7 @@ def create_app(config=None):
             'index.html',
             last_photo=Path(state['last_photo']).name if state['last_photo'] else None,
             next_in=next_in,
+            status=state.get('status', 'idle'),
             weather=state.get('weather'),
             transit=state.get('transit', []),
             pi=state.get('pi', {}),
@@ -153,6 +156,7 @@ def create_app(config=None):
         return jsonify({
             'last_photo': str(state['last_photo']) if state['last_photo'] else None,
             'next_update_in_seconds': next_in,
+            'status': state.get('status', 'idle'),
             'weather': state.get('weather'),
             'transit': state.get('transit', []),
             'pi': state.get('pi', {}),
