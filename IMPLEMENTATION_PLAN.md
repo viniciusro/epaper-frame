@@ -571,10 +571,10 @@ CREATE INDEX IF NOT EXISTS idx_shown_at ON history(shown_at);
 CREATE INDEX IF NOT EXISTS idx_path ON history(photo_path);
 ```
 
-- [ ] Implement DB init in `core/shuffler.py`
-- [ ] Test: create DB, insert records, query
+- [x] Implement DB init in `core/shuffler.py`
+- [x] Test: create DB, insert records, query
 
-**Result:** _________________
+**Result:** SQLite schema with history table + two indexes created at `data/history.db` on first instantiation.
 
 ### Step 6.2 — Selection algorithm
 Implement `core/shuffler.py`:
@@ -586,8 +586,8 @@ Implement `core/shuffler.py`:
 5. Record selection in history
 6. Return selected photo path
 
-- [ ] Implement `shuffler.py`
-- [ ] Test: populate 20 photos, verify no-repeat window works
+- [x] Implement `shuffler.py`
+- [x] Test: populate 20 photos, verify no-repeat window works
 
 **Test:**
 ```bash
@@ -602,7 +602,7 @@ for i in range(5):
 "
 ```
 
-**Result:** _________________
+**Result:** Full implementation. `db_path` injectable for testing. `next()` groups by source name, picks source then photo within it. History reset on exhaustion with warning log. `history_count()` and `reset_history()` public helpers. 6 tests pass including weighted-source and persistence tests.
 
 ---
 
@@ -621,10 +621,10 @@ Routes:
 - `POST /next` — trigger manual photo change
 - `GET /preview` — serve last rendered image as PNG
 
-- [ ] Implement Flask app with all routes (stubs)
-- [ ] Test: `flask run --port 5000`, all routes return 200
+- [x] Implement Flask app with all routes (stubs)
+- [x] Test: `flask run --port 5000`, all routes return 200
 
-**Result:** _________________
+**Result:** `create_app(config)` factory pattern. Routes: `GET /`, `GET /config`, `POST /config`, `POST /upload`, `POST /next`, `GET /preview`, `GET /api/status`. Thread-safe state dict + lock shared with FrameController. `next_photo_event` threading.Event polled by controller.
 
 ### Step 7.2 — Status page UI
 Implement `web/templates/index.html`:
@@ -635,10 +635,10 @@ Implement `web/templates/index.html`:
 - Upload form
 - Link to config
 
-- [ ] Implement template
-- [ ] Test: open in browser, all sections render
+- [x] Implement template
+- [x] Test: open in browser, all sections render
 
-**Result:** _________________
+**Result:** Minimal monospace dark-theme UI. Sections: Status (photo name + countdown), Weather, S8 Departures (table with on-time/delayed color), Pi, Actions (Next Photo / Upload / Config / Preview). Meta refresh every 30s.
 
 ### Step 7.3 — Config editor
 - Form for all `config.yaml` fields
@@ -646,10 +646,10 @@ Implement `web/templates/index.html`:
 - S8 direction filter editable here (no code change needed to update it)
 - Save → write `config.yaml` → restart frame controller
 
-- [ ] Implement config form
-- [ ] Test: change S8 direction filter, verify `config.yaml` updated
+- [x] Implement config form
+- [x] Test: change S8 direction filter, verify `config.yaml` updated
 
-**Result:** _________________
+**Result:** `config.html` with fieldsets: Display, Weather, Transit, Nextcloud. Password inputs for api_key and nextcloud password (blank = keep existing). Direction filter prominently in Transit section. POST writes YAML via PyYAML.
 
 ### Step 7.4 — Upload endpoint
 ```python
@@ -659,8 +659,8 @@ def upload():
     upload_source.save(file)
     return redirect('/')
 ```
-- [ ] Implement upload endpoint
-- [ ] Test: upload JPEG via curl, verify saved to photos folder
+- [x] Implement upload endpoint
+- [x] Test: upload JPEG via curl, verify saved to photos folder
 
 **Test:**
 ```bash
@@ -668,7 +668,7 @@ curl -X POST http://localhost:5000/upload \
      -F "photo=@tests/fixtures/sample.jpg"
 ```
 
-**Result:** _________________
+**Result:** Delegates to `UploadSource.save()` with PIL validation. Returns 400 on invalid file, redirects to `/` on success. Tested via Flask test client.
 
 ---
 

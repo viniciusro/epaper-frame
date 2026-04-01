@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>epaper-frame — config</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #111; color: #eee; padding: 1.5rem; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: #fff; }
+    h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin: 1.2rem 0 0.6rem; }
+    fieldset { border: 1px solid #333; border-radius: 6px; padding: 0.8rem 1rem; margin-bottom: 0.5rem; }
+    legend { color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0 0.4rem; }
+    .field { display: flex; flex-direction: column; margin-bottom: 0.7rem; }
+    label { font-size: 0.8rem; color: #888; margin-bottom: 0.25rem; }
+    label .note { color: #555; font-size: 0.75rem; margin-left: 0.4rem; }
+    input[type=text], input[type=number], input[type=password], input[type=url] {
+      background: #1e1e1e; border: 1px solid #444; color: #eee; border-radius: 4px;
+      padding: 0.35rem 0.5rem; font-family: monospace; font-size: 0.9rem; width: 100%;
+    }
+    input:focus { outline: none; border-color: #666; }
+    .actions { display: flex; gap: 0.6rem; margin-top: 1.2rem; }
+    button { background: #333; color: #eee; border: 1px solid #555; border-radius: 4px;
+      padding: 0.4rem 1rem; cursor: pointer; font-family: monospace; font-size: 0.9rem; }
+    button:hover { background: #444; }
+    a { color: #888; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+<h1>Config</h1>
+
+<form method="post" action="/config">
+
+  <fieldset>
+    <legend>Display</legend>
+    <div class="field">
+      <label>Interval (minutes)</label>
+      <input type="number" name="interval_minutes" value="{{ config.get('display', {}).get('interval_minutes', 60) }}" min="1">
+    </div>
+    <div class="field">
+      <label>No-repeat window (days)</label>
+      <input type="number" name="no_repeat_days" value="{{ config.get('display', {}).get('no_repeat_days', 7) }}" min="1">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Weather</legend>
+    <div class="field">
+      <label>OpenWeatherMap API key</label>
+      <input type="password" name="weather_api_key" value="{{ config.get('weather', {}).get('api_key', '') }}">
+    </div>
+    <div class="field">
+      <label>City</label>
+      <input type="text" name="weather_city" value="{{ config.get('weather', {}).get('city', 'Munich') }}">
+    </div>
+    <div class="field">
+      <label>Country code</label>
+      <input type="text" name="weather_country_code" value="{{ config.get('weather', {}).get('country_code', 'DE') }}" style="max-width:80px">
+    </div>
+    <div class="field">
+      <label>Units <span class="note">metric / imperial</span></label>
+      <input type="text" name="weather_units" value="{{ config.get('weather', {}).get('units', 'metric') }}" style="max-width:100px">
+    </div>
+    <div class="field">
+      <label>Refresh interval (minutes)</label>
+      <input type="number" name="weather_refresh" value="{{ config.get('weather', {}).get('refresh_interval_minutes', 30) }}" min="1">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Transit</legend>
+    <div class="field">
+      <label>S8 direction filter <span class="note">e.g. Marienplatz</span></label>
+      <input type="text" name="transit_direction_filter" value="{{ config.get('transit', {}).get('direction_filter', 'Marienplatz') }}">
+    </div>
+    <div class="field">
+      <label>MVG global ID <span class="note">stop identifier</span></label>
+      <input type="text" name="transit_global_id" value="{{ config.get('transit', {}).get('mvg_global_id', 'de:09162:1740') }}">
+    </div>
+    <div class="field">
+      <label>Line</label>
+      <input type="text" name="transit_line" value="{{ config.get('transit', {}).get('line', 'S8') }}" style="max-width:80px">
+    </div>
+    <div class="field">
+      <label>Departures to show</label>
+      <input type="number" name="transit_limit" value="{{ config.get('transit', {}).get('limit', 2) }}" min="1" max="5" style="max-width:80px">
+    </div>
+    <div class="field">
+      <label>Refresh interval (minutes)</label>
+      <input type="number" name="transit_refresh" value="{{ config.get('transit', {}).get('refresh_interval_minutes', 2) }}" min="1">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Nextcloud (WebDAV)</legend>
+    <div class="field">
+      <label>Server URL</label>
+      <input type="url" name="nextcloud_url" value="{{ config.get('sources', {}).get('nextcloud', {}).get('url', '') }}">
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" name="nextcloud_username" value="{{ config.get('sources', {}).get('nextcloud', {}).get('username', '') }}">
+    </div>
+    <div class="field">
+      <label>Password <span class="note">leave blank to keep existing</span></label>
+      <input type="password" name="nextcloud_password" value="">
+    </div>
+    <div class="field">
+      <label>Remote path</label>
+      <input type="text" name="nextcloud_remote_path" value="{{ config.get('sources', {}).get('nextcloud', {}).get('remote_path', '/Photos/frame') }}">
+    </div>
+    <div class="field">
+      <label>Sync interval (minutes)</label>
+      <input type="number" name="nextcloud_sync_interval" value="{{ config.get('sources', {}).get('nextcloud', {}).get('sync_interval_minutes', 30) }}" min="1">
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit">Save</button>
+    <a href="/">← Back</a>
+  </div>
+
+</form>
+
+</body>
+</html>

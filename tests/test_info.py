@@ -258,3 +258,55 @@ def test_pi_stats_cpu_temp_none_on_windows():
     result = PiStats().fetch()
     if platform.system() == 'Windows':
         assert result['cpu_temp'] is None
+
+
+# ------------------------------------------------------------------ #
+# Web UI                                                               #
+# ------------------------------------------------------------------ #
+
+def _make_client():
+    import sys
+    sys.path.insert(0, '.')
+    from web.app import create_app
+    app = create_app(config={
+        'web': {'secret_key': 'test', 'port': 5000},
+        'sources': {'local_folder': {'path': 'data/uploads'}},
+        'display': {'interval_minutes': 60, 'no_repeat_days': 7},
+        'weather': {'api_key': '', 'city': 'Munich', 'country_code': 'DE',
+                    'units': 'metric', 'refresh_interval_minutes': 30},
+        'transit': {'mvg_global_id': 'de:09162:1740', 'line': 'S8',
+                    'direction_filter': 'Marienplatz', 'limit': 2,
+                    'refresh_interval_minutes': 2},
+    })
+    app.config['TESTING'] = True
+    return app.test_client()
+
+
+def test_web_status_endpoint():
+    client = _make_client()
+    resp = client.get('/api/status')
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert 'last_photo' in data
+    assert 'next_update_in_seconds' in data
+    assert 'weather' in data
+    assert 'transit' in data
+    assert 'pi' in data
+
+
+def test_web_upload_invalid():
+    import io
+    client = _make_client()
+    resp = client.post(
+        '/upload',
+        data={'photo': (io.BytesIO(b'not an image'), 'bad.jpg')},
+        content_type='multipart/form-data',
+    )
+    assert resp.status_code == 400
+
+
+def test_web_config_get():
+    client = _make_client()
+    resp = client.get('/config')
+    assert resp.status_code == 200
+    assert b'direction_filter' in resp.data or b'S8' in resp.data

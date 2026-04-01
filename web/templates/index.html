@@ -1,1 +1,113 @@
-<!DOCTYPE html><html><body><h1>epaper-frame</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="30">
+  <title>epaper-frame</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #111; color: #eee; padding: 1.5rem; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: #fff; letter-spacing: 0.05em; }
+    h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 0.6rem; }
+    section { background: #1e1e1e; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    .row { display: flex; justify-content: space-between; padding: 0.2rem 0; }
+    .label { color: #888; }
+    .value { color: #eee; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    td { padding: 0.25rem 0.4rem; }
+    td:last-child { text-align: right; color: #aaa; }
+    .on-time { color: #4caf50; }
+    .delayed  { color: #f44336; }
+    form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    input[type=file] { flex: 1; color: #ccc; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 0.3rem; }
+    button, .btn {
+      background: #333; color: #eee; border: 1px solid #555; border-radius: 4px;
+      padding: 0.4rem 0.9rem; cursor: pointer; font-family: monospace; font-size: 0.9rem;
+      text-decoration: none;
+    }
+    button:hover, .btn:hover { background: #444; }
+    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+    .dim { color: #666; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+<h1>epaper-frame</h1>
+
+<!-- Status -->
+<section>
+  <h2>Status</h2>
+  <div class="row"><span class="label">Current photo</span><span class="value">{{ last_photo or '—' }}</span></div>
+  <div class="row"><span class="label">Next refresh</span><span class="value">
+    {% if next_in is not none %}
+      {% set m = (next_in // 60) %}{% set s = (next_in % 60) %}
+      {{ '%d:%02d' | format(m, s) }}
+    {% else %}—{% endif %}
+  </span></div>
+</section>
+
+<!-- Weather -->
+<section>
+  <h2>Weather</h2>
+  {% if weather %}
+  <div class="row"><span class="label">{{ weather.city }}</span><span class="value">{{ weather.temp }}°C — {{ weather.condition }}</span></div>
+  <div class="row"><span class="label">updated</span><span class="value dim">{{ weather.updated }}</span></div>
+  {% else %}
+  <span class="dim">No weather data</span>
+  {% endif %}
+</section>
+
+<!-- Transit -->
+<section>
+  <h2>S8 Departures</h2>
+  {% if transit %}
+  <table>
+    {% for dep in transit %}
+    <tr>
+      <td>S8</td>
+      <td>{{ dep.destination }}</td>
+      <td>{{ dep.time }}</td>
+      <td class="{{ 'delayed' if dep.delay > 0 else 'on-time' }}">
+        {{ 'on time' if dep.delay == 0 else '+' ~ dep.delay ~ ' min' }}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <span class="dim">No departures</span>
+  {% endif %}
+</section>
+
+<!-- Pi stats -->
+<section>
+  <h2>Pi</h2>
+  {% if pi %}
+  <div class="row"><span class="label">hostname</span><span class="value">{{ pi.hostname or '—' }}</span></div>
+  <div class="row"><span class="label">IP</span><span class="value">{{ pi.ip or '—' }}</span></div>
+  <div class="row"><span class="label">CPU temp</span><span class="value">
+    {{ pi.cpu_temp ~ '°C' if pi.cpu_temp is not none else '—' }}
+  </span></div>
+  {% else %}
+  <span class="dim">No Pi stats</span>
+  {% endif %}
+</section>
+
+<!-- Actions -->
+<section>
+  <h2>Actions</h2>
+  <div class="actions">
+    <form method="post" action="/next">
+      <button type="submit">Next Photo</button>
+    </form>
+    <form method="post" action="/upload" enctype="multipart/form-data">
+      <input type="file" name="photo" accept="image/*" required>
+      <button type="submit">Upload</button>
+    </form>
+    <a class="btn" href="/config">Config</a>
+    <a class="btn" href="/preview" target="_blank">Preview</a>
+  </div>
+</section>
+
+</body>
+</html>
