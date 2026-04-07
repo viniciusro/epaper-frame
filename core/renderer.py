@@ -66,10 +66,10 @@ class Renderer:
     # Public API                                                           #
     # ------------------------------------------------------------------ #
 
-    def render(self, path, strip_data=None) -> Image.Image:
+    def render(self, path, strip_data=None, strip_fg=(255, 255, 255)) -> Image.Image:
         """Full pipeline: load → fit → compose → return RGB Image."""
         image = self.load(path)
-        return self.compose(image, strip_data)
+        return self.compose(image, strip_data, strip_fg=strip_fg)
 
     def load(self, path) -> Image.Image:
         """Open image, apply EXIF rotation, return RGB."""

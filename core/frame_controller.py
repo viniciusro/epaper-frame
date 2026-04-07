@@ -20,6 +20,11 @@ logger = logging.getLogger(__name__)
 _INFO_REFRESH_INTERVAL = 30  # seconds between info polling loops
 
 
+def _hex_to_rgb(hex_color: str) -> tuple:
+    h = hex_color.lstrip('#')
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+
 class FrameController:
     def __init__(self, config):
         self.config = config
@@ -143,7 +148,9 @@ class FrameController:
         photo_path = self._shuffler.next()
         logger.info('Selected photo: %s', photo_path)
 
-        rendered = self._renderer.render(photo_path, strip_data)
+        hex_color = self.config.get('display', {}).get('strip_text_color', '#ffffff')
+        strip_fg = _hex_to_rgb(hex_color)
+        rendered = self._renderer.render(photo_path, strip_data, strip_fg=strip_fg)
 
         # Push to display
         webapp.update_state(status='refreshing', last_photo=str(photo_path))

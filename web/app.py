@@ -91,6 +91,7 @@ def create_app(config=None):
         cfg.setdefault('display', {})
         cfg['display']['interval_minutes'] = int(f.get('interval_minutes', 60))
         cfg['display']['no_repeat_days'] = int(f.get('no_repeat_days', 7))
+        cfg['display']['strip_text_color'] = f.get('strip_text_color', '#ffffff')
 
         cfg.setdefault('weather', {})
         cfg['weather']['api_key'] = f.get('weather_api_key', '')
