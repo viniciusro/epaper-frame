@@ -1,7 +1,9 @@
 import pytest
 from pathlib import Path
 from PIL import Image
-from core.renderer import Renderer, WIDTH, HEIGHT, PHOTO_HEIGHT, STRIP_HEIGHT, _PALETTE_COLORS
+from core.renderer import Renderer, WIDTH, HEIGHT, STRIP_HEIGHT, _PALETTE_COLORS
+
+PHOTO_HEIGHT = HEIGHT  # photo now fills full canvas (strip overlays)
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 
@@ -82,13 +84,11 @@ def test_compose_size(renderer, landscape_img):
 
 def test_compose_strip_region(renderer, square_img):
     result = renderer.compose(square_img, MOCK_STRIP)
-    # Crop the bottom strip area
-    strip_region = result.crop((0, PHOTO_HEIGHT, WIDTH, HEIGHT))
-    # Strip should not be entirely white (info text was rendered)
+    # Crop the bottom strip area where text is overlaid
+    strip_region = result.crop((0, HEIGHT - STRIP_HEIGHT, WIDTH, HEIGHT))
+    # Strip text (white) should produce non-uniform pixels over the photo
     colors = set(map(tuple, strip_region.getdata()))
-    assert colors != {(255, 255, 255)}, 'Strip region is all white — strip not rendered'
-    # Strip background should be mostly black
-    assert (0, 0, 0) in colors, 'No black pixels in strip — something went wrong'
+    assert len(colors) > 1, 'Strip region is uniform — strip not rendered'
 
 
 # ------------------------------------------------------------------ #

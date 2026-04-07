@@ -6,7 +6,7 @@ from sources.base import PhotoSource
 
 logger = logging.getLogger(__name__)
 
-_IMAGE_SUFFIXES = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+_IMAGE_SUFFIXES = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'}
 _META_FILE = '.sync_meta.json'
 
 

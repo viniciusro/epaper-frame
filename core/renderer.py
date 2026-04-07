@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 WIDTH = 1200
 HEIGHT = 1600
 STRIP_HEIGHT = 150
-PHOTO_HEIGHT = HEIGHT - STRIP_HEIGHT  # 1450
 
 # The 6 physical ink colors of the Waveshare 13.3" Spectra 6 display.
 # These are the ACTUAL colors the panel can render — used for palette
@@ -62,7 +61,6 @@ def _load_font(size: int) -> ImageFont.ImageFont:
 class Renderer:
     WIDTH = WIDTH
     HEIGHT = HEIGHT
-    STRIP_HEIGHT = STRIP_HEIGHT
 
     # ------------------------------------------------------------------ #
     # Public API                                                           #
@@ -80,8 +78,8 @@ class Renderer:
         return img.convert('RGB')
 
     def fit_image(self, image: Image.Image) -> Image.Image:
-        """Cover-fit to WIDTH x PHOTO_HEIGHT (1200x1450), center crop."""
-        target_w, target_h = WIDTH, PHOTO_HEIGHT
+        """Cover-fit to WIDTH x HEIGHT (1200x1600), center crop."""
+        target_w, target_h = WIDTH, HEIGHT
         src_w, src_h = image.size
 
         scale = max(target_w / src_w, target_h / src_h)
@@ -116,19 +114,17 @@ class Renderer:
         return quantized.convert('RGB')
 
     def render_strip(self, strip_data: dict | None,
-                     bg_color=(255, 255, 255),
-                     text_color=(0, 0, 0)) -> Image.Image:
+                     text_color=(255, 255, 255)) -> Image.Image:
         """
-        Render the 1200x150 info strip.
+        Render a transparent 1200x150 info strip (text only, no background).
 
         strip_data keys (all optional):
           weather: {temp, condition, city}
           transit: [{time, delay}, ...]
           pi: {ip, cpu_temp, updated}
-        bg_color: strip background RGB tuple (default white)
-        text_color: text RGB tuple (default black)
+        text_color: text RGB tuple (default white for overlay on photos)
         """
-        strip = Image.new('RGB', (WIDTH, STRIP_HEIGHT), bg_color)
+        strip = Image.new('RGBA', (WIDTH, STRIP_HEIGHT), (0, 0, 0, 0))
         if strip_data is None:
             return strip
 
@@ -183,21 +179,19 @@ class Renderer:
         return strip
 
     def compose(self, image: Image.Image, strip_data=None,
-                strip_bg=(255, 255, 255), strip_fg=(0, 0, 0)) -> Image.Image:
+                strip_fg=(255, 255, 255)) -> Image.Image:
         """
-        Fit + enhance photo, render strip, compose into 1200x1600 RGB.
+        Fit + enhance photo, overlay strip text, compose into 1200x1600 RGB.
+        Strip text is drawn directly on the photo — no white bar.
         Returns RGB — the EPD driver handles final palette quantization.
         """
         photo = self.fit_image(image)
         photo = self.enhance_for_epaper(photo)
 
-        strip = self.render_strip(strip_data,
-                                  bg_color=strip_bg, text_color=strip_fg)
-
-        canvas = Image.new('RGB', (WIDTH, HEIGHT), (255, 255, 255))
-        canvas.paste(photo, (0, 0))
-        canvas.paste(strip, (0, PHOTO_HEIGHT))
+        canvas = photo.convert('RGBA')
+        strip = self.render_strip(strip_data, text_color=strip_fg)
+        canvas.alpha_composite(strip, dest=(0, HEIGHT - STRIP_HEIGHT))
 
         # Single quantize pass — driver's getbuffer() will do its own
         # quantize, so we return plain RGB and let it handle the ink mapping.
-        return canvas
+        return canvas.convert('RGB')
