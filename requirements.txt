@@ -1,5 +1,5 @@
-Pillow>=10.0
-Flask>=3.0
-PyYAML>=6.0
-requests>=2.31
-webdavclient3>=3.14
+Pillow>=10.0,<13.0
+Flask>=3.0,<4.0
+PyYAML>=6.0,<7.0
+requests>=2.31,<3.0
+webdavclient3>=3.14,<4.0

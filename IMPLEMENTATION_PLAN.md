@@ -799,27 +799,17 @@ sudo journalctl -u epaper-frame -f
 **Result:** _________________
 
 ### Step 10.2 — requirements.txt finalized
-```
-Pillow>=10.0
-Flask>=3.0
-PyYAML>=6.0
-requests>=2.31
-webdavclient3>=3.14
-RPi.GPIO>=0.7        # Pi only
-spidev>=3.6          # Pi only
-```
-
-- [ ] Pin all versions
+- [x] Pin all versions with upper bounds — 2026-04-07
 - [ ] Test clean install on Pi: `pip install -r requirements.txt`
 
-**Result:** _________________
+**Result:** Pinned to major version ranges (e.g. Pillow>=10,<13). RPi.GPIO/spidev omitted — loaded via .so, not pip.
 
 ### Step 10.3 — Logging
-- [ ] Replace all `print()` with `logging` module
-- [ ] Log to `/var/log/epaper-frame.log` + stdout (for journalctl)
-- [ ] Log levels: INFO for normal ops, WARNING for fallbacks, ERROR for failures
+- [x] Replace all `print()` in `drivers/epd13in3E.py` with `logging` — 2026-04-07
+- [x] Driver messages: DEBUG for SPI handshake steps, INFO for init/done, ERROR for bad dimensions
+- [x] All other modules already use logging throughout
 
-**Result:** _________________
+**Result:** No more bare print() calls — all driver output flows through journalctl.
 
 ---
 

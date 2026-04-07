@@ -26,12 +26,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
+import logging
 import time
 import drivers.epdconfig as epdconfig
 
 import PIL
 from PIL import Image
 import io
+
+logger = logging.getLogger(__name__)
 
 EPD_WIDTH       = 1200
 EPD_HEIGHT      = 1600
@@ -84,13 +87,13 @@ class EPD():
         epdconfig.spi_writebyte2(buf, Len)
 
     def ReadBusyH(self):
-        print("e-Paper busy H")
+        logger.debug("e-Paper busy H")
         while(epdconfig.digital_read(self.EPD_BUSY_PIN) == 0):      # 0: busy, 1: idle
             epdconfig.delay_ms(5)
-        print("e-Paper busy H release")
+        logger.debug("e-Paper busy H release")
 
     def TurnOnDisplay(self):
-        print("Write PON")
+        logger.debug("Write PON")
         self.CS_ALL(0)
         self.SendCommand(0x04)
         self.CS_ALL(1)
@@ -98,22 +101,22 @@ class EPD():
 
         epdconfig.delay_ms(50)
 
-        print("Write DRF")
+        logger.debug("Write DRF")
         self.CS_ALL(0)
         self.SendCommand(0x12)
         self.SendData(0x00)
         self.CS_ALL(1)
         self.ReadBusyH()
 
-        print("Write POF")
+        logger.debug("Write POF")
         self.CS_ALL(0)
         self.SendCommand(0x02)
         self.SendData(0x00)
         self.CS_ALL(1)
-        print("Display Done!!")
+        logger.info("Display done")
 
     def Init(self):
-        print("EPD init...")
+        logger.info("EPD init")
         epdconfig.module_init()
         
         self.Reset() 
@@ -237,7 +240,7 @@ class EPD():
         elif(imwidth == self.height and imheight == self.width):
             image_temp = image.rotate(90, expand=True)
         else:
-            print("Invalid image dimensions: %d x %d, expected %d x %d" % (imwidth, imheight, self.width, self.height))
+            logger.error("Invalid image dimensions: %d x %d, expected %d x %d", imwidth, imheight, self.width, self.height)
 
         # Convert the soruce image to the 7 colors, dithering if needed
         image_7color = image_temp.convert("RGB").quantize(palette=pal_image)
