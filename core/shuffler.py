@@ -46,7 +46,9 @@ class Shuffler:
         for path, source_name in eligible:
             source_buckets.setdefault(source_name, []).append(path)
 
-        if 'nga' in source_buckets:
+        if 'upload' in source_buckets:
+            chosen_source = 'upload'
+        elif 'nga' in source_buckets:
             chosen_source = 'nga'
         else:
             chosen_source = random.choice(list(source_buckets.keys()))
