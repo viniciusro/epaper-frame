@@ -757,12 +757,174 @@ sudo journalctl -u epaper-frame -f
 
 | Feature | Notes |
 |---------|-------|
-| WiFi hotspot setup wizard | first-boot captive portal, `hostapd` + `dnsmasq` |
+| ~~WiFi hotspot setup wizard~~ | Promoted to Phase 11 below |
 | Google Photos integration | OAuth2 flow, album selection |
 | OTA updates | pull latest from GitHub via web UI |
 | Multiple display profiles | different strip layouts, seasonal themes |
 | ~~Strip color picker~~ | ✅ Done — web UI color picker, saved to config.yaml, live-read on each render |
 | 24h forced refresh watchdog | ✅ Done — `_info_refresh_loop` fires `_next_event` if no display in 24h (supplier recommendation) |
+
+---
+
+---
+
+## Phase 11 — WiFi AP+STA Mode & First-Boot Setup Wizard
+**Goal:** Pi broadcasts its own `epaper-frame` hotspot at all times (AP+STA). On first boot with no WiFi configured, user connects to the hotspot and uses a captive portal to enter their home WiFi credentials. Product-ready onboarding flow.
+**Environment:** 🔧 HW
+
+---
+
+### Step 11.1 — AP+STA network interface setup
+**Goal:** Create a persistent virtual `uap0` interface on top of `wlan0` so the Pi can be a WiFi client and access point simultaneously.
+**Environment:** 🔧 HW
+
+```bash
+# uap0 is a virtual AP interface cloned from wlan0's MAC
+iw dev wlan0 interface add uap0 type __ap
+```
+
+- [ ] Create `/etc/systemd/network/12-uap0.network` — static IP `192.168.4.1/24` for `uap0`
+- [ ] Create `/etc/systemd/system/create-uap0.service` — oneshot that runs `iw dev wlan0 interface add uap0 type __ap` before hostapd starts
+- [ ] Enable `systemd-networkd` to manage `uap0`
+- [ ] Verify: `ip addr show uap0` shows `192.168.4.1` after reboot
+
+**Files to create:**
+```
+deployment/
+  network/
+    12-uap0.network          # systemd-networkd config for uap0
+  services/
+    create-uap0.service      # creates the virtual interface
+```
+
+**Result:** _________________
+
+---
+
+### Step 11.2 — hostapd (AP broadcast)
+**Goal:** Pi broadcasts SSID `epaper-frame` on the `uap0` interface.
+**Environment:** 🔧 HW
+
+```bash
+sudo apt-get install -y hostapd
+sudo systemctl unmask hostapd
+```
+
+- [ ] Create `deployment/hostapd/hostapd.conf`:
+  ```ini
+  interface=uap0
+  ssid=epaper-frame
+  hw_mode=g
+  channel=6
+  auth_algs=1
+  wpa=2
+  wpa_passphrase=epaperframe   # default password, user can change later
+  wpa_key_mgmt=WPA-PSK
+  wpa_pairwise=CCMP
+  ```
+- [ ] Create `deployment/services/hostapd.service` override pointing at the config
+- [ ] Deploy config to Pi: `sudo cp deployment/hostapd/hostapd.conf /etc/hostapd/hostapd.conf`
+- [ ] Verify: phone can see and connect to `epaper-frame` SSID
+
+**Result:** _________________
+
+---
+
+### Step 11.3 — dnsmasq (DHCP for hotspot clients)
+**Goal:** Phones connecting to the `epaper-frame` AP get an IP address and can reach `192.168.4.1`.
+**Environment:** 🔧 HW
+
+```bash
+sudo apt-get install -y dnsmasq
+```
+
+- [ ] Create `deployment/dnsmasq/epaper-frame.conf`:
+  ```ini
+  interface=uap0
+  dhcp-range=192.168.4.10,192.168.4.50,255.255.255.0,24h
+  domain=local
+  address=/epaper-frame.local/192.168.4.1   # resolve hostname on AP network
+  ```
+- [ ] Deploy: `sudo cp deployment/dnsmasq/epaper-frame.conf /etc/dnsmasq.d/epaper-frame.conf`
+- [ ] Verify: phone connected to `epaper-frame` AP gets IP in `192.168.4.x` range
+- [ ] Verify: `http://192.168.4.1:5000` opens the web UI from phone
+
+**Result:** _________________
+
+---
+
+### Step 11.4 — First-boot detection
+**Goal:** Detect when no home WiFi is configured and activate "setup mode" — display a message on the e-Paper and flag the web UI to show the WiFi setup wizard.
+**Environment:** 🔧 HW + 💻 PC
+
+Logic:
+- Check if `wpa_supplicant.conf` contains any `network={}` blocks
+- If not → write a flag file `data/first_boot` and show setup prompt on display
+
+- [ ] Add `_is_wifi_configured()` helper in `deployment/pi_setup.sh` (bash) and in `core/frame_controller.py` (Python)
+- [ ] On first boot with no WiFi: frame_controller skips the normal display cycle and instead renders a "Connect to epaper-frame WiFi → 192.168.4.1" screen
+- [ ] Once WiFi is saved (Step 11.5), delete `data/first_boot` flag and resume normal operation
+
+**Files to modify:**
+```
+core/frame_controller.py     # check first_boot flag, show setup screen
+core/renderer.py             # add render_setup_screen() method
+```
+
+**Result:** _________________
+
+---
+
+### Step 11.5 — WiFi setup wizard (web UI)
+**Goal:** User connects to `epaper-frame` hotspot, opens `http://192.168.4.1:5000/wifi`, scans for networks, picks one, enters password. Pi saves credentials and reboots.
+**Environment:** 💻 PC + 🔧 HW
+
+New Flask routes:
+```
+GET  /wifi        — scan nearby SSIDs via `iwlist wlan0 scan`, render picker UI
+POST /wifi        — write SSID+password to /etc/wpa_supplicant/wpa_supplicant.conf, reboot
+```
+
+- [ ] Implement `GET /wifi` — runs `iwlist wlan0 scan`, parses SSIDs, renders `wifi.html` template
+- [ ] Implement `POST /wifi` — validates input, appends `network={}` block to `wpa_supplicant.conf`, triggers `sudo reboot`
+- [ ] Create `web/templates/wifi.html` — minimal page: list of SSIDs as radio buttons + password field + connect button
+- [ ] Add `/wifi` link to `index.html` actions (visible only when accessed via AP IP `192.168.4.x`)
+- [ ] Secure `POST /wifi` — only accept requests from `192.168.4.x` subnet (prevent remote misuse)
+
+**Security note:** `wpa_supplicant.conf` contains plaintext passwords — ensure file permissions are `600` and owned by `root`.
+
+**Result:** _________________
+
+---
+
+### Step 11.6 — pi_setup.sh updates
+**Goal:** One-shot setup script installs and configures everything so a fresh Pi can be fully configured with a single command.
+**Environment:** 🔧 HW
+
+- [ ] Add `hostapd` + `dnsmasq` install to `deployment/pi_setup.sh`
+- [ ] Add `uap0` interface setup
+- [ ] Add `hostapd.conf` and `dnsmasq.conf` deployment
+- [ ] Add `sudoers` entry: `pi ALL=(ALL) NOPASSWD: /sbin/reboot` (needed for web-triggered reboot)
+- [ ] Test full setup on a fresh Pi OS image
+
+**Result:** _________________
+
+---
+
+### Step 11.7 — End-to-end test
+**Goal:** Simulate the full out-of-box experience.
+**Environment:** 🔧 HW
+
+- [ ] Flash fresh Pi OS, run `pi_setup.sh`
+- [ ] Boot without any home WiFi configured → display shows setup screen
+- [ ] Connect phone to `epaper-frame` SSID
+- [ ] Open `http://192.168.4.1:5000/wifi` → see WiFi picker
+- [ ] Select home network, enter password → Pi reboots
+- [ ] Pi connects to home WiFi + keeps broadcasting `epaper-frame` AP
+- [ ] Connect phone to `epaper-frame` AP → web UI accessible at `192.168.4.1:5000`
+- [ ] Connect phone to home WiFi → web UI accessible at `epaper-frame.local:5000`
+
+**Result:** _________________
 
 ---
 
