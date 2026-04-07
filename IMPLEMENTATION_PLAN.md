@@ -733,12 +733,12 @@ sudo systemctl start epaper-frame
 sudo journalctl -u epaper-frame -f
 ```
 
-- [x] Service file deployed — `deployment/epaper-frame.service` created
-- [ ] Service starts on boot — pending Pi arrival
-- [ ] Survives reboot — pending Pi arrival
-- [ ] `journalctl` shows clean startup log — pending Pi arrival
+- [x] Service file deployed — installed to `/etc/systemd/system/epaper-frame.service`
+- [x] Service starts on boot — `systemctl enable` confirmed
+- [ ] Survives reboot — not yet tested
+- [x] `journalctl` shows clean startup log — confirmed 2026-04-07
 
-**Result:** `deployment/epaper-frame.service` with `PYTHONUNBUFFERED=1`, `Restart=always`, journal logging. `deployment/pi_setup.sh` automates venv, SPI enable, dirs, config copy, and service install on fresh Pi. `deploy.sh` updated: now also runs `pip install` and shows last 20 journal lines after restart. `deployment/PI_ARRIVAL_CHECKLIST.md` covers hardware → first boot → deploy → validate with debug tips.
+**Result:** Service live on Pi Zero 2W at 192.168.188.94. Fixed two Pi-specific issues: `epdconfig.py` used `os.popen('getconf LONG_BIT')` which fails in systemd's stripped PATH — replaced with `struct.calcsize('P')*8`. `.so` binaries deployed manually (excluded from git). First display cycle completed successfully: `bcm2835 init success`, full 24s e-Paper refresh, `Display Done!!`.
 
 ---
 
@@ -747,14 +747,14 @@ sudo journalctl -u epaper-frame -f
 **Environment:** 🔧 HW
 
 ### Step 9.1 — Full cycle test
-- [ ] Frame displays photo with bottom strip
+- [x] Frame displays photo with bottom strip — confirmed 2026-04-07
 - [ ] Weather data is live and correct
 - [ ] S8 shows real departures toward Marienplatz
 - [ ] Pi stats show correct IP and temperature
 - [ ] Photo changes after configured interval
 - [ ] No-repeat window prevents same photo showing twice within 7 days
 
-**Result:** _________________
+**Result:** First photo rendered on real display (square.jpg, 24s refresh). Service running as systemd daemon with Restart=always.
 
 ### Step 9.2 — Source tests
 - [ ] Photo from local folder displays correctly
