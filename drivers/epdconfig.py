@@ -29,6 +29,7 @@
 import time
 import os
 import logging
+import struct
 import sys
 
 from ctypes import *
@@ -54,8 +55,12 @@ find_dirs = [
 spi = None
 if os.environ.get('EPAPER_MOCK', '0') != '1':
     for find_dir in find_dirs:
-        val = int(os.popen('getconf LONG_BIT').read())
-        val_1 = os.popen("cat /proc/cpuinfo | grep 'Raspberry Pi 5'").read()
+        val = struct.calcsize('P') * 8  # 32 or 64, no shell needed
+        try:
+            val_1 = open('/proc/cpuinfo').read()
+        except Exception:
+            val_1 = ''
+        val_1 = val_1 if 'Raspberry Pi 5' in val_1 else ""
         if val == 64:
             if val_1 == "":
                 so_filename = os.path.join(find_dir, 'DEV_Config_64_b.so')
