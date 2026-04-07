@@ -182,7 +182,7 @@ class FrameController:
     # ------------------------------------------------------------------ #
 
     def _build_sources(self):
-        sources_cfg = self.config.get('sources', {})
+        sources_cfg = webapp._load_config().get('sources', {})
         sources = []
 
         local_cfg = sources_cfg.get('local_folder', {})
