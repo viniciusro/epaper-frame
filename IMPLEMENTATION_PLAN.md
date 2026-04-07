@@ -830,7 +830,8 @@ spidev>=3.6          # Pi only
 | Google Photos integration | OAuth2 flow, album selection |
 | OTA updates | pull latest from GitHub via web UI |
 | Multiple display profiles | different strip layouts, seasonal themes |
-| Strip color picker | web UI color inputs for strip background + text color; pass to `compose(strip_bg=, strip_fg=)` |
+| ~~Strip color picker~~ | ✅ Done — web UI color picker, saved to config.yaml, live-read on each render |
+| 24h forced refresh watchdog | ✅ Done — `_info_refresh_loop` fires `_next_event` if no display in 24h (supplier recommendation) |
 
 ---
 

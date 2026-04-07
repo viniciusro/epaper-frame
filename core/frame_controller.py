@@ -47,6 +47,9 @@ class FrameController:
         # Wiring: use the event already in web.app so POST /next wakes us
         self._next_event = webapp.next_photo_event
 
+        # Watchdog: track last successful display time for 24h forced refresh
+        self._last_display_at = datetime.now()
+
     # ------------------------------------------------------------------ #
     # Public API                                                           #
     # ------------------------------------------------------------------ #
@@ -85,7 +88,8 @@ class FrameController:
         logger.info('Web UI started on port %d', port)
 
     def _info_refresh_loop(self):
-        """Continuously refresh weather, transit, pi_stats and push to web state."""
+        """Continuously refresh weather, transit, pi_stats and push to web state.
+        Also fires the 24h watchdog if no display refresh has occurred in 24 hours."""
         while True:
             try:
                 weather = self._weather.fetch()
@@ -95,6 +99,11 @@ class FrameController:
                 logger.debug('Info refreshed')
             except Exception:
                 logger.exception('Info refresh error')
+
+            if (datetime.now() - self._last_display_at).total_seconds() >= 86400:
+                logger.warning('24h watchdog: no display refresh in 24h, forcing update')
+                self._next_event.set()
+
             time.sleep(_INFO_REFRESH_INTERVAL)
 
     def _display_loop(self):
@@ -158,6 +167,7 @@ class FrameController:
         logger.info('Pushing to display')
         self._display.show(rendered)
 
+        self._last_display_at = datetime.now()
         logger.info('Display cycle complete')
 
     # ------------------------------------------------------------------ #
