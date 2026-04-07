@@ -115,6 +115,10 @@ def create_app(config=None):
         cfg['sources']['nextcloud']['remote_path'] = f.get('nextcloud_remote_path', '/Photos/frame')
         cfg['sources']['nextcloud']['sync_interval_minutes'] = int(f.get('nextcloud_sync_interval', 30))
 
+        cfg['sources'].setdefault('nga', {})
+        cfg['sources']['nga']['enabled'] = f.get('nga_enabled', 'false') == 'true'
+        cfg['sources']['nga']['cache_size'] = int(f.get('nga_cache_size', 50))
+
         _CONFIG_PATH.write_text(yaml.dump(cfg, default_flow_style=False, allow_unicode=True))
         return redirect(url_for('config_get'))
 

@@ -1,10 +1,13 @@
 import io
+import json
 import pytest
 from pathlib import Path
 from PIL import Image
+from unittest.mock import patch, MagicMock
 
 from sources.local import LocalFolderSource
 from sources.upload import UploadSource
+from sources.nga import NGASource
 
 
 # ------------------------------------------------------------------ #
@@ -111,3 +114,83 @@ def test_upload_list_photos(tmp_path):
 def test_upload_sync_returns_zero(tmp_path):
     src = UploadSource({'path': str(tmp_path)})
     assert src.sync() == 0
+
+
+# ------------------------------------------------------------------ #
+# NGASource                                                            #
+# ------------------------------------------------------------------ #
+
+_FAKE_CSV = (
+    'uuid,iiifurl,iiifthumburl,viewtype,sequence,width,height,maxpixels,openaccess,'
+    'created,modified,depictstmsobjectid,assistivetext\n'
+    'abc-001,https://api.nga.gov/iiif/abc-001,,primary,1,3000,4000,12000000,1,'
+    '2020-01-01,2020-01-01,1234,\n'
+    'abc-002,https://api.nga.gov/iiif/abc-002,,primary,1,2000,3000,6000000,0,'
+    '2020-01-01,2020-01-01,5678,\n'  # openaccess=0, should be skipped
+    'abc-003,https://api.nga.gov/iiif/abc-003,,primary,1,100,100,10000,1,'
+    '2020-01-01,2020-01-01,9999,\n'  # too small, should be skipped
+)
+
+
+def test_nga_list_photos_empty(tmp_path):
+    src = NGASource({'cache_size': 10})
+    src._cache_dir = tmp_path
+    assert src.list_photos() == []
+
+
+def test_nga_sync_downloads_open_access(tmp_path):
+    src = NGASource({'cache_size': 10})
+    src._cache_dir = tmp_path
+    src._meta_path = tmp_path / '.nga_meta.json'
+
+    fake_image = _make_image_bytes().read()
+
+    with patch('sources.nga.requests.get') as mock_get:
+        # First call: CSV fetch; subsequent calls: image downloads
+        csv_resp = MagicMock()
+        csv_resp.text = _FAKE_CSV
+        csv_resp.raise_for_status = MagicMock()
+
+        img_resp = MagicMock()
+        img_resp.content = fake_image
+        img_resp.raise_for_status = MagicMock()
+
+        mock_get.side_effect = [csv_resp, img_resp]
+
+        count = src.sync()
+
+    assert count == 1  # only abc-001 passes filters
+    assert (tmp_path / 'abc-001.jpg').exists()
+    meta = json.loads((tmp_path / '.nga_meta.json').read_text())
+    assert 'abc-001' in meta
+
+
+def test_nga_sync_skips_already_cached(tmp_path):
+    src = NGASource({'cache_size': 10})
+    src._cache_dir = tmp_path
+    src._meta_path = tmp_path / '.nga_meta.json'
+
+    # Pre-populate meta as if abc-001 is already cached
+    (tmp_path / 'abc-001.jpg').write_bytes(b'fake')
+    src._save_meta({'abc-001': {'filename': 'abc-001.jpg', 'url': 'http://x'}})
+
+    with patch('sources.nga.requests.get') as mock_get:
+        csv_resp = MagicMock()
+        csv_resp.text = _FAKE_CSV
+        csv_resp.raise_for_status = MagicMock()
+        mock_get.return_value = csv_resp
+
+        count = src.sync()
+
+    assert count == 0  # nothing new to download
+
+
+def test_nga_sync_network_error_returns_zero(tmp_path):
+    src = NGASource({'cache_size': 10})
+    src._cache_dir = tmp_path
+    src._meta_path = tmp_path / '.nga_meta.json'
+
+    with patch('sources.nga.requests.get', side_effect=Exception('network error')):
+        count = src.sync()
+
+    assert count == 0

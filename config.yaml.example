@@ -17,6 +17,10 @@ sources:
     remote_path: /Photos/frame
     sync_interval_minutes: 30
 
+  nga:
+    enabled: false              # National Gallery of Art open-access collection
+    cache_size: 50              # number of artworks to keep on disk
+
 weather:
   enabled: true
   api_key: ""

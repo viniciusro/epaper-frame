@@ -13,6 +13,7 @@ from info.transit import TransitFetcher
 from info.weather import WeatherFetcher
 from sources.local import LocalFolderSource
 from sources.nextcloud import NextcloudSource
+from sources.nga import NGASource
 from sources.upload import UploadSource
 
 logger = logging.getLogger(__name__)
@@ -196,6 +197,11 @@ class FrameController:
         if nextcloud_cfg.get('enabled', False):
             sources.append(NextcloudSource(nextcloud_cfg))
             logger.info('Source enabled: nextcloud')
+
+        nga_cfg = sources_cfg.get('nga', {})
+        if nga_cfg.get('enabled', False):
+            sources.append(NGASource(nga_cfg))
+            logger.info('Source enabled: nga (National Gallery of Art)')
 
         if not sources:
             logger.warning('No photo sources enabled')

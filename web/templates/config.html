@@ -132,6 +132,21 @@
     </div>
   </fieldset>
 
+  <fieldset>
+    <legend>National Gallery of Art</legend>
+    <div class="field">
+      <label>Enabled</label>
+      <select name="nga_enabled" style="background:#1e1e1e;border:1px solid #444;color:#eee;border-radius:4px;padding:0.35rem 0.5rem;font-family:monospace;font-size:0.9rem;">
+        <option value="true"  {% if config.get('sources',{}).get('nga',{}).get('enabled') %}selected{% endif %}>Yes</option>
+        <option value="false" {% if not config.get('sources',{}).get('nga',{}).get('enabled') %}selected{% endif %}>No</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Cache size <span class="note">artworks to keep on disk</span></label>
+      <input type="number" name="nga_cache_size" value="{{ config.get('sources',{}).get('nga',{}).get('cache_size', 50) }}" min="10" max="500" style="max-width:100px">
+    </div>
+  </fieldset>
+
   <div class="actions">
     <button type="submit">Save</button>
     <a href="/">← Back</a>
