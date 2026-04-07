@@ -26,11 +26,12 @@ class Display:
         return os.environ.get('EPAPER_MOCK', '0') == '1'
 
     def show(self, image: Image.Image):
+        out = os.path.join(tempfile.gettempdir(), 'epaper_preview.png')
+        image.save(out)
         if self.MOCK:
-            out = os.path.join(tempfile.gettempdir(), 'epaper_preview.png')
-            image.save(out)
             logger.info('[MOCK] Saved preview to %s', out)
             return
+        logger.info('Saved preview to %s', out)
         from drivers.epd13in3E import EPD
         epd = EPD()
         epd.Init()

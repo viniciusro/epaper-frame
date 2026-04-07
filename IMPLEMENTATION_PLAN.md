@@ -753,26 +753,27 @@ sudo journalctl -u epaper-frame -f
 - [x] Pi stats IP fixed: UDP connect trick returns real network IP instead of 127.0.0.1
 - [x] Weather data is live and correct — confirmed 2026-04-07
 - [x] S8 shows real departures toward Marienplatz — confirmed 2026-04-07
-- [ ] Pi stats show correct IP and temperature — verify on next deploy
-- [ ] Photo changes after configured interval
-- [ ] No-repeat window prevents same photo showing twice within 7 days
+- [x] Pi stats show correct IP and temperature — confirmed 2026-04-07
+- [x] Photo changes after configured interval — confirmed 2026-04-07
+- [x] No-repeat window prevents same photo showing twice within 7 days — confirmed 2026-04-07
 
 **Result:** First photo rendered on real display (square.jpg, 24s refresh). Service running as systemd daemon with Restart=always. Image quality issues (dull colors, sideways orientation, black strip) fixed in renderer rewrite — pending deploy to Pi.
 
 ### Step 9.2 — Source tests
-- [ ] Photo from local folder displays correctly
-- [ ] Photo uploaded via web UI appears in rotation
+- [x] Photo from local folder displays correctly — confirmed 2026-04-07
+- [x] Photo uploaded via web UI appears in rotation — confirmed 2026-04-07
 - [ ] Nextcloud sync downloads photos and they enter rotation
 
-**Result:** _________________
+**Result:** Local folder and upload source both working. Nextcloud deferred (no server configured).
 
 ### Step 9.3 — Web interface tests
-- [ ] Status page loads at `http://epaper-frame.local`
-- [ ] Config change (S8 direction filter) takes effect without code change
-- [ ] Manual "next photo" button works
-- [ ] Photo upload via browser works
+- [x] Status page loads at `http://epaper-frame.local` — confirmed 2026-04-07
+- [x] Config change takes effect without code change — confirmed 2026-04-07
+- [x] Manual "next photo" button works — confirmed 2026-04-07
+- [x] Photo upload via browser works — confirmed 2026-04-07
+- [x] Preview fixed: now saved on real hardware too (was MOCK-only) — 2026-04-07
 
-**Result:** _________________
+**Result:** All web UI features working. Preview was missing on hardware — fixed by always saving preview PNG in display.show().
 
 ### Step 9.4 — Resilience tests
 - [ ] WiFi disconnect → frame keeps displaying last image, recovers when WiFi returns
