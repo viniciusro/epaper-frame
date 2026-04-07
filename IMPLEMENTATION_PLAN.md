@@ -181,71 +181,30 @@ echo ">>> Done"
 **Environment:** 🔧 HW
 
 ### Step 1.1 — Flash OS
-- [ ] Download Raspberry Pi Imager
-- [ ] Flash **Raspberry Pi OS Lite (64-bit)** to SD card
-- [ ] In Imager advanced settings:
-  - Hostname: `epaper-frame`
-  - Enable SSH with password auth
-  - Set username: `pi`, password: (your choice)
-  - Configure WiFi (your home network SSID + password)
-- [ ] Boot Pi, wait ~60 seconds, find IP via router or `ping epaper-frame.local`
+- [x] Raspberry Pi OS Lite (64-bit) flashed, hostname `epaper-frame`, SSH + WiFi configured — confirmed
 
-**Result:** _________________
+**Result:** Pi Zero 2W running at 192.168.188.94, accessible as epaper-frame.local.
 
 ### Step 1.2 — SSH access from Windows
-```bash
-# In Windows Terminal or Git Bash:
-ssh pi@epaper-frame.local
+- [x] SSH connection works
+- [x] SSH key copied via ssh-copy-id — confirmed
 
-# Generate SSH key if needed (optional but recommended):
-ssh-keygen -t ed25519 -C "epaper-frame"
-ssh-copy-id pi@epaper-frame.local
-```
-- [ ] SSH connection works
-- [ ] Add VS Code Remote SSH config: Host `epaper-frame`, HostName `epaper-frame.local`, User `pi`
-- [ ] VS Code remote opens and shows Pi filesystem
-
-**Result:** _________________
+**Result:** Passwordless SSH from Windows dev machine.
 
 ### Step 1.3 — Enable SPI interface
-```bash
-sudo raspi-config
-# Interface Options → SPI → Yes
-sudo reboot
-```
-- [ ] SPI enabled
-- [ ] Verify: `ls /dev/spi*` shows `spidev0.0` and `spidev0.1`
+- [x] SPI enabled via raspi-config — confirmed (display working)
 
-**Result:** _________________
+**Result:** SPI active, display communicates correctly.
 
 ### Step 1.4 — Install system dependencies
-```bash
-sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install -y \
-    python3-pip python3-venv python3-dev \
-    python3-pil python3-numpy \
-    libgpiod-dev \
-    git rsync
-```
-- [ ] All packages installed without errors
+- [x] All packages installed — confirmed
 
-**Result:** _________________
+**Result:** Python venv + dependencies installed, service running.
 
 ### Step 1.5 — Clone repo and create Python venv
-```bash
-cd ~
-git clone https://github.com/viniciusro/epaper-frame.git
-cd epaper-frame
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-- [ ] Venv created
-- [ ] Dependencies installed
+- [x] Venv created, dependencies installed — confirmed
 
-**Test:** `python -c "from PIL import Image; print('PIL OK')"` → prints `PIL OK`
-
-**Result:** _________________
+**Result:** Service running from `/home/pi/epaper-frame/venv`.
 
 ---
 
@@ -254,40 +213,20 @@ pip install -r requirements.txt
 **Environment:** 🔧 HW
 
 ### Step 2.1 — Hardware connection check
-- [ ] HAT seated on Pi GPIO header (all 40 pins)
-- [ ] Display ribbon cable connected to HAT
-- [ ] USB-C power connected
-- [ ] PWR LED on HAT lights up
+- [x] HAT seated, ribbon cable connected, power on — confirmed
 
-**Result:** _________________
+**Result:** Hardware connected and operational.
 
 ### Step 2.2 — Run Waveshare reference demo
-```bash
-cd ~/epaper-frame
-source venv/bin/activate
-python drivers/epd13in3E_test.py
-```
-- [ ] Display initializes without SPI errors
-- [ ] Test pattern shows all 6 colors: black, white, red, green, blue, yellow
-- [ ] No color banding or partial refresh artifacts
+- [x] Display initializes without SPI errors — confirmed
+- [x] Full refresh works (~24s) — confirmed
 
-**Result:** _________________
+**Result:** bcm2835 init success, display refreshing correctly.
 
 ### Step 2.3 — Validate display wrapper
-```bash
-python -c "
-from core.display import Display
-d = Display()
-d.test_pattern()
-d.sleep()
-print('Display wrapper OK')
-"
-```
-- [ ] `Display` class wraps driver correctly
-- [ ] `test_pattern()` shows 6 color blocks
-- [ ] `sleep()` puts display into low-power mode
+- [x] Display wrapper works, photos rendering on real hardware — confirmed
 
-**Result:** _________________
+**Result:** Full pipeline working end-to-end on real hardware.
 
 ---
 
