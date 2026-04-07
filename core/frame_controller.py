@@ -108,21 +108,22 @@ class FrameController:
 
     def _display_loop(self):
         """Main display loop — runs forever in the calling thread."""
-        logger.info('Display loop started (interval=%ds)', self._interval)
+        logger.info('Display loop started')
         while True:
             try:
                 self._do_display_cycle()
             except Exception:
                 logger.exception('Display cycle failed — will retry next interval')
 
-            next_at = datetime.now() + timedelta(seconds=self._interval)
+            interval = webapp._load_config().get('display', {}).get('interval_minutes', 60) * 60
+            next_at = datetime.now() + timedelta(seconds=interval)
             webapp.update_state(
                 status='idle',
                 next_update_at=next_at,
             )
 
-            logger.info('Sleeping %ds (next at %s)', self._interval, next_at.strftime('%H:%M:%S'))
-            woken = self._next_event.wait(timeout=self._interval)
+            logger.info('Sleeping %ds (next at %s)', interval, next_at.strftime('%H:%M:%S'))
+            woken = self._next_event.wait(timeout=interval)
             if woken:
                 logger.info('Woken early by /next trigger')
             self._next_event.clear()
