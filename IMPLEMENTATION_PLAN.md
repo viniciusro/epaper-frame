@@ -751,8 +751,8 @@ sudo journalctl -u epaper-frame -f
 - [x] Image quality improved: EXIF rotation, pre-enhancement (contrast×1.5, saturation×2.0, sharpness×1.5), single quantize pass (removed double-quantization)
 - [x] Strip default changed to white background / black text
 - [x] Pi stats IP fixed: UDP connect trick returns real network IP instead of 127.0.0.1
-- [ ] Weather data is live and correct
-- [ ] S8 shows real departures toward Marienplatz
+- [x] Weather data is live and correct — confirmed 2026-04-07
+- [x] S8 shows real departures toward Marienplatz — confirmed 2026-04-07
 - [ ] Pi stats show correct IP and temperature — verify on next deploy
 - [ ] Photo changes after configured interval
 - [ ] No-repeat window prevents same photo showing twice within 7 days
