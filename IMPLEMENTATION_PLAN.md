@@ -748,13 +748,16 @@ sudo journalctl -u epaper-frame -f
 
 ### Step 9.1 — Full cycle test
 - [x] Frame displays photo with bottom strip — confirmed 2026-04-07
+- [x] Image quality improved: EXIF rotation, pre-enhancement (contrast×1.5, saturation×2.0, sharpness×1.5), single quantize pass (removed double-quantization)
+- [x] Strip default changed to white background / black text
+- [x] Pi stats IP fixed: UDP connect trick returns real network IP instead of 127.0.0.1
 - [ ] Weather data is live and correct
 - [ ] S8 shows real departures toward Marienplatz
-- [ ] Pi stats show correct IP and temperature
+- [ ] Pi stats show correct IP and temperature — verify on next deploy
 - [ ] Photo changes after configured interval
 - [ ] No-repeat window prevents same photo showing twice within 7 days
 
-**Result:** First photo rendered on real display (square.jpg, 24s refresh). Service running as systemd daemon with Restart=always.
+**Result:** First photo rendered on real display (square.jpg, 24s refresh). Service running as systemd daemon with Restart=always. Image quality issues (dull colors, sideways orientation, black strip) fixed in renderer rewrite — pending deploy to Pi.
 
 ### Step 9.2 — Source tests
 - [ ] Photo from local folder displays correctly
@@ -827,6 +830,7 @@ spidev>=3.6          # Pi only
 | Google Photos integration | OAuth2 flow, album selection |
 | OTA updates | pull latest from GitHub via web UI |
 | Multiple display profiles | different strip layouts, seasonal themes |
+| Strip color picker | web UI color inputs for strip background + text color; pass to `compose(strip_bg=, strip_fg=)` |
 
 ---
 

@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
 logger = logging.getLogger(__name__)
 
@@ -10,18 +10,21 @@ HEIGHT = 1600
 STRIP_HEIGHT = 150
 PHOTO_HEIGHT = HEIGHT - STRIP_HEIGHT  # 1450
 
-# 6-color e-Paper palette (Pillow palette format: flat R,G,B list, 256 entries)
-# Slot order must match drivers/epd13in3E.py getbuffer() palette:
+# The 6 physical ink colors of the Waveshare 13.3" Spectra 6 display.
+# These are the ACTUAL colors the panel can render — used for palette
+# quantization so dithering maps to real ink, not ideal sRGB primaries.
+# Slot order matches drivers/epd13in3E.py getbuffer() palette exactly:
 #   0=black, 1=white, 2=yellow, 3=red, 4=unused(black), 5=blue, 6=green
 _PALETTE_COLORS = [
     (0, 0, 0),        # 0 black
     (255, 255, 255),  # 1 white
     (255, 255, 0),    # 2 yellow
     (255, 0, 0),      # 3 red
-    (0, 0, 0),        # 4 unused (black)
+    (0, 0, 0),        # 4 unused (maps to black)
     (0, 0, 255),      # 5 blue
     (0, 255, 0),      # 6 green
 ]
+
 
 def _make_palette_image():
     pal = Image.new('P', (1, 1))
@@ -38,9 +41,11 @@ _PALETTE_IMAGE = _make_palette_image()
 def _load_font(size: int) -> ImageFont.ImageFont:
     """Try common monospace fonts, fall back to Pillow default."""
     candidates = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',  # Pi path
+        '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
         'DejaVuSansMono.ttf',
         'DejaVuSansMono-Bold.ttf',
-        'cour.ttf',       # Courier New (Windows)
+        'cour.ttf',
         'LiberationMono-Regular.ttf',
         'UbuntuMono-R.ttf',
         'FreeMono.ttf',
@@ -64,65 +69,76 @@ class Renderer:
     # ------------------------------------------------------------------ #
 
     def render(self, path, strip_data=None) -> Image.Image:
-        """Full pipeline: load → fit → compose with strip → return Image."""
+        """Full pipeline: load → fit → compose → return RGB Image."""
         image = self.load(path)
         return self.compose(image, strip_data)
 
     def load(self, path) -> Image.Image:
-        """Open any image format and return an RGB PIL Image."""
+        """Open image, apply EXIF rotation, return RGB."""
         img = Image.open(path)
+        img = ImageOps.exif_transpose(img)  # respect camera orientation
         return img.convert('RGB')
 
     def fit_image(self, image: Image.Image) -> Image.Image:
-        """Cover-fit image to WIDTH x PHOTO_HEIGHT (1200x1450), center crop."""
+        """Cover-fit to WIDTH x PHOTO_HEIGHT (1200x1450), center crop."""
         target_w, target_h = WIDTH, PHOTO_HEIGHT
         src_w, src_h = image.size
 
-        # Scale so the image covers the target (no black bars)
         scale = max(target_w / src_w, target_h / src_h)
         new_w = round(src_w * scale)
         new_h = round(src_h * scale)
 
         resized = image.resize((new_w, new_h), Image.LANCZOS)
 
-        # Center crop
         left = (new_w - target_w) // 2
         top = (new_h - target_h) // 2
         return resized.crop((left, top, left + target_w, top + target_h))
 
+    def enhance_for_epaper(self, image: Image.Image) -> Image.Image:
+        """
+        Boost saturation and contrast before quantization.
+        E-paper dithering tends to wash out colors — pre-enhancing
+        compensates so the final result looks vivid on the panel.
+        """
+        from PIL import ImageEnhance
+        image = ImageEnhance.Contrast(image).enhance(1.5)
+        image = ImageEnhance.Color(image).enhance(2.0)
+        image = ImageEnhance.Sharpness(image).enhance(1.5)
+        return image
+
     def quantize_6color(self, image: Image.Image) -> Image.Image:
-        """Floyd-Steinberg dither to the 6-color e-Paper palette."""
+        """Floyd-Steinberg dither to the 6-color e-Paper palette, returns RGB."""
         rgb = image.convert('RGB')
-        # Apply slight blur before quantize to improve dithering quality
-        rgb = rgb.filter(ImageFilter.SMOOTH_MORE)
         quantized = rgb.quantize(
             palette=_PALETTE_IMAGE,
             dither=Image.Dither.FLOYDSTEINBERG,
         )
-        # Convert back to RGB so callers get a consistent mode
         return quantized.convert('RGB')
 
-    def render_strip(self, strip_data: dict | None) -> Image.Image:
+    def render_strip(self, strip_data: dict | None,
+                     bg_color=(255, 255, 255),
+                     text_color=(0, 0, 0)) -> Image.Image:
         """
         Render the 1200x150 info strip.
 
         strip_data keys (all optional):
-          weather: {temp: float, condition: str, city: str}
-          transit: [{time: str, delay: int}, ...]
-          pi: {ip: str, cpu_temp: float, updated: str}
+          weather: {temp, condition, city}
+          transit: [{time, delay}, ...]
+          pi: {ip, cpu_temp, updated}
+        bg_color: strip background RGB tuple (default white)
+        text_color: text RGB tuple (default black)
         """
-        strip = Image.new('RGB', (WIDTH, STRIP_HEIGHT), (0, 0, 0))
+        strip = Image.new('RGB', (WIDTH, STRIP_HEIGHT), bg_color)
         if strip_data is None:
             return strip
 
         draw = ImageDraw.Draw(strip)
         font_large = _load_font(36)
         font_small = _load_font(28)
-        white = (255, 255, 255)
 
         LEFT_X = 20
         RIGHT_MAX_X = WIDTH - 20
-        y_positions = [10, 52, 94]  # three text rows
+        y_positions = [10, 52, 94]
 
         # --- LEFT: weather (row 0) + transit (rows 1-2) ---
         weather = strip_data.get('weather') or {}
@@ -135,7 +151,8 @@ class Renderer:
                 city or None,
                 cond or None,
             ] if p]
-            draw.text((LEFT_X, y_positions[0]), '  '.join(parts), font=font_large, fill=white)
+            draw.text((LEFT_X, y_positions[0]), '  '.join(parts),
+                      font=font_large, fill=text_color)
 
         transit = strip_data.get('transit') or []
         for i, dep in enumerate(transit[:2]):
@@ -143,7 +160,8 @@ class Renderer:
             t = dep.get('time', '')
             delay = dep.get('delay', 0)
             delay_str = 'on time' if delay == 0 else f'+{delay} min'
-            draw.text((LEFT_X, row), f'S8  {t}  {delay_str}', font=font_small, fill=white)
+            draw.text((LEFT_X, row), f'S8  {t}  {delay_str}',
+                      font=font_small, fill=text_color)
 
         # --- RIGHT: Pi stats (right-aligned) ---
         pi = strip_data.get('pi') or {}
@@ -159,21 +177,27 @@ class Renderer:
             font = font_large if i == 0 else font_small
             bbox = draw.textbbox((0, 0), line, font=font)
             text_w = bbox[2] - bbox[0]
-            draw.text((RIGHT_MAX_X - text_w, y_positions[i]), line, font=font, fill=white)
+            draw.text((RIGHT_MAX_X - text_w, y_positions[i]), line,
+                      font=font, fill=text_color)
 
         return strip
 
-    def compose(self, image: Image.Image, strip_data=None) -> Image.Image:
-        """Fit + quantize photo, render strip, compose into 1200x1600."""
+    def compose(self, image: Image.Image, strip_data=None,
+                strip_bg=(255, 255, 255), strip_fg=(0, 0, 0)) -> Image.Image:
+        """
+        Fit + enhance photo, render strip, compose into 1200x1600 RGB.
+        Returns RGB — the EPD driver handles final palette quantization.
+        """
         photo = self.fit_image(image)
+        photo = self.enhance_for_epaper(photo)
 
-        # Render strip before quantizing so we can paste it unquantized first
-        strip = self.render_strip(strip_data)
+        strip = self.render_strip(strip_data,
+                                  bg_color=strip_bg, text_color=strip_fg)
 
-        # Compose full canvas in RGB
-        canvas = Image.new('RGB', (WIDTH, HEIGHT), (0, 0, 0))
+        canvas = Image.new('RGB', (WIDTH, HEIGHT), (255, 255, 255))
         canvas.paste(photo, (0, 0))
         canvas.paste(strip, (0, PHOTO_HEIGHT))
 
-        # Quantize the entire canvas to 6-color palette
-        return self.quantize_6color(canvas)
+        # Single quantize pass — driver's getbuffer() will do its own
+        # quantize, so we return plain RGB and let it handle the ink mapping.
+        return canvas
