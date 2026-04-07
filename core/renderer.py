@@ -37,18 +37,27 @@ def _make_palette_image():
 _PALETTE_IMAGE = _make_palette_image()
 
 
-def _load_font(size: int) -> ImageFont.ImageFont:
+def _load_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
     """Try common monospace fonts, fall back to Pillow default."""
-    candidates = [
-        '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',  # Pi path
-        '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
-        'DejaVuSansMono.ttf',
-        'DejaVuSansMono-Bold.ttf',
-        'cour.ttf',
-        'LiberationMono-Regular.ttf',
-        'UbuntuMono-R.ttf',
-        'FreeMono.ttf',
-    ]
+    candidates = (
+        [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
+            'DejaVuSansMono-Bold.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf',
+            'LiberationMono-Bold.ttf',
+            '/usr/share/fonts/truetype/ubuntu/UbuntuMono-B.ttf',
+            'UbuntuMono-B.ttf',
+        ] if bold else [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
+            'DejaVuSansMono.ttf',
+            'DejaVuSansMono-Bold.ttf',
+            'cour.ttf',
+            'LiberationMono-Regular.ttf',
+            'UbuntuMono-R.ttf',
+            'FreeMono.ttf',
+        ]
+    )
     for name in candidates:
         try:
             return ImageFont.truetype(name, size)
@@ -129,8 +138,8 @@ class Renderer:
             return strip
 
         draw = ImageDraw.Draw(strip)
-        font_large = _load_font(36)
-        font_small = _load_font(28)
+        font_large = _load_font(36, bold=True)
+        font_small = _load_font(28, bold=True)
 
         LEFT_X = 20
         RIGHT_MAX_X = WIDTH - 20
