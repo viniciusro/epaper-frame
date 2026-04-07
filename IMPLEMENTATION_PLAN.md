@@ -790,13 +790,14 @@ sudo journalctl -u epaper-frame -f
 **Environment:** 💻 PC + 🔧 HW
 
 ### Step 10.1 — README.md
-- [ ] Project description + photo of finished frame
-- [ ] Hardware BOM with links
-- [ ] Setup instructions (Pi OS → SSH → deploy)
-- [ ] Configuration reference
-- [ ] Web UI screenshot
+- [x] Project description — 2026-04-07
+- [x] Hardware BOM — 2026-04-07
+- [x] Setup instructions (Pi OS → SSH → deploy) — 2026-04-07
+- [x] Configuration reference — 2026-04-07
+- [x] Web UI section — 2026-04-07
+- [ ] Photo of finished frame — add when frame is in its final housing
 
-**Result:** _________________
+**Result:** README written. Photo of finished frame deferred until housing is built.
 
 ### Step 10.2 — requirements.txt finalized
 - [x] Pin all versions with upper bounds — 2026-04-07
