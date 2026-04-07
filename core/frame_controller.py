@@ -19,6 +19,17 @@ from sources.upload import UploadSource
 logger = logging.getLogger(__name__)
 
 _INFO_REFRESH_INTERVAL = 30  # seconds between info polling loops
+_FIRST_BOOT_FLAG = Path('data/first_boot')
+_WPA_SUPPLICANT = Path('/etc/wpa_supplicant/wpa_supplicant.conf')
+
+
+def _wifi_configured() -> bool:
+    """Return True if wpa_supplicant.conf has at least one network block."""
+    try:
+        text = _WPA_SUPPLICANT.read_text()
+        return 'network={' in text
+    except Exception:
+        return True  # assume configured on non-Pi environments
 
 
 def _hex_to_rgb(hex_color: str) -> tuple:
@@ -110,6 +121,22 @@ class FrameController:
     def _display_loop(self):
         """Main display loop — runs forever in the calling thread."""
         logger.info('Display loop started')
+
+        # First-boot: show setup screen until WiFi is configured
+        if not _wifi_configured():
+            logger.warning('No WiFi configured — showing setup screen')
+            _FIRST_BOOT_FLAG.parent.mkdir(parents=True, exist_ok=True)
+            _FIRST_BOOT_FLAG.touch()
+            setup_img = self._renderer.render_setup_screen()
+            self._display.show(setup_img)
+            webapp.update_state(status='setup')
+            # Wait until wifi POST saves credentials and fires the event
+            self._next_event.wait()
+            self._next_event.clear()
+            logger.info('WiFi credentials saved — rebooting')
+            import subprocess
+            subprocess.run(['sudo', 'reboot'], check=False)
+
         while True:
             try:
                 self._do_display_cycle()

@@ -1,0 +1,15 @@
+[Unit]
+Description=Create uap0 virtual AP interface
+Before=hostapd.service
+After=sys-subsystem-net-devices-wlan0.device
+Wants=sys-subsystem-net-devices-wlan0.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/sbin/iw dev wlan0 interface add uap0 type __ap
+ExecStart=/sbin/ip link set uap0 up
+ExecStop=/sbin/iw dev uap0 del
+
+[Install]
+WantedBy=multi-user.target

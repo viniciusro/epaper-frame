@@ -71,6 +71,45 @@ class Renderer:
     WIDTH = WIDTH
     HEIGHT = HEIGHT
 
+    def render_setup_screen(self) -> Image.Image:
+        """Render a first-boot setup instruction screen."""
+        img = Image.new('RGB', (WIDTH, HEIGHT), (0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        font_large = _load_font(60, bold=True)
+        font_med   = _load_font(40, bold=True)
+        font_small = _load_font(34)
+
+        lines_top = [
+            ('epaper-frame', font_large, (255, 255, 255), HEIGHT // 4),
+            ('Setup required', font_med,  (255, 255, 0),  HEIGHT // 4 + 90),
+        ]
+        for text, font, color, y in lines_top:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            x = (WIDTH - (bbox[2] - bbox[0])) // 2
+            draw.text((x, y), text, font=font, fill=color)
+
+        instructions = [
+            '1. Connect to WiFi:',
+            '   epaper-frame',
+            '   Password: epaperframe',
+            '',
+            '2. Open browser:',
+            '   http://192.168.4.1:5000/wifi',
+            '',
+            '3. Select your home WiFi',
+            '   and enter the password.',
+            '',
+            '4. Frame will reboot and',
+            '   connect automatically.',
+        ]
+        y = HEIGHT // 2 - 60
+        for line in instructions:
+            color = (255, 255, 0) if line and not line.startswith(' ') and line[0].isdigit() else (255, 255, 255)
+            draw.text((80, y), line, font=font_small, fill=color)
+            y += 46
+
+        return img
+
     # ------------------------------------------------------------------ #
     # Public API                                                           #
     # ------------------------------------------------------------------ #

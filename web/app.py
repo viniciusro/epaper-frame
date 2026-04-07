@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+import subprocess
 import tempfile
 import threading
 from pathlib import Path
@@ -148,6 +150,86 @@ def create_app(config=None):
         if not preview_path.exists():
             return 'No preview available', 404
         return send_file(str(preview_path), mimetype='image/png')
+
+    # ------------------------------------------------------------------ #
+    # WiFi setup wizard (accessible from AP network 192.168.4.x)         #
+    # ------------------------------------------------------------------ #
+
+    def _is_ap_client():
+        """True when the request comes from the hotspot subnet."""
+        remote = request.remote_addr or ''
+        return remote.startswith('192.168.4.')
+
+    def _scan_ssids():
+        """Return sorted list of nearby SSIDs via iwlist scan."""
+        try:
+            out = subprocess.check_output(
+                ['sudo', 'iwlist', 'wlan0', 'scan'],
+                stderr=subprocess.DEVNULL, timeout=15
+            ).decode('utf-8', errors='ignore')
+            ssids = re.findall(r'ESSID:"([^"]+)"', out)
+            return sorted(set(s for s in ssids if s))
+        except Exception:
+            return []
+
+    def _write_wpa_network(ssid: str, password: str):
+        """Append a network block to wpa_supplicant.conf via sudo tee."""
+        block = (
+            f'\nnetwork={{\n'
+            f'    ssid="{ssid}"\n'
+            f'    psk="{password}"\n'
+            f'    key_mgmt=WPA-PSK\n'
+            f'}}\n'
+        )
+        # Read existing content, append block, write back via sudo tee
+        wpa_path = '/etc/wpa_supplicant/wpa_supplicant.conf'
+        try:
+            existing = Path(wpa_path).read_text()
+        except Exception:
+            existing = 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\ncountry=DE\n'
+        new_content = existing + block
+        subprocess.run(
+            ['sudo', 'tee', wpa_path],
+            input=new_content.encode(),
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+
+    @app.get('/wifi')
+    def wifi_get():
+        ssids = _scan_ssids()
+        from_ap = _is_ap_client()
+        return render_template('wifi.html', ssids=ssids, from_ap=from_ap, error=None)
+
+    @app.post('/wifi')
+    def wifi_post():
+        if not _is_ap_client():
+            return 'WiFi setup is only available from the epaper-frame hotspot', 403
+
+        ssid = request.form.get('ssid', '').strip()
+        password = request.form.get('password', '').strip()
+
+        if not ssid:
+            ssids = _scan_ssids()
+            return render_template('wifi.html', ssids=ssids, from_ap=True,
+                                   error='Please select a network.')
+        if len(password) < 8:
+            ssids = _scan_ssids()
+            return render_template('wifi.html', ssids=ssids, from_ap=True,
+                                   error='Password must be at least 8 characters.')
+
+        try:
+            _write_wpa_network(ssid, password)
+            logger.info('WiFi credentials saved for SSID: %s', ssid)
+        except Exception as exc:
+            logger.error('Failed to write wpa_supplicant.conf: %s', exc)
+            ssids = _scan_ssids()
+            return render_template('wifi.html', ssids=ssids, from_ap=True,
+                                   error=f'Failed to save: {exc}')
+
+        # Wake the display loop (will reboot after showing connecting screen)
+        next_photo_event.set()
+        return render_template('wifi_saved.html', ssid=ssid)
 
     @app.get('/api/status')
     def api_status():
