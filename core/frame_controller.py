@@ -138,14 +138,19 @@ class FrameController:
         logger.info('Display cycle starting')
 
         # Sync remote sources (non-blocking — errors logged, not raised)
+        # Rebuild sources from live config so enabling a source in the UI
+        # takes effect without restarting the service.
+        self._sources = self._build_sources()
+        self._shuffler.sources = self._sources
+
         for source in self._sources:
-            if hasattr(source, 'sync') and source.name == 'nextcloud':
+            if source.name in ('nextcloud', 'nga'):
                 try:
                     n = source.sync()
                     if n:
-                        logger.info('Nextcloud: synced %d new photos', n)
+                        logger.info('%s: synced %d new photos', source.name, n)
                 except Exception:
-                    logger.warning('Nextcloud sync failed', exc_info=True)
+                    logger.warning('%s sync failed', source.name, exc_info=True)
 
         # Collect latest info snapshot
         with webapp._state_lock:
