@@ -2,7 +2,7 @@
 
 13.3" 6-color e-Paper digital photo frame running on Raspberry Pi Zero 2W.
 
-Displays photos from a local folder, web uploads, or Nextcloud — with a live info strip showing weather, S-Bahn departures, and Pi stats. Controlled via a web UI.
+Displays photos from a local folder, web uploads, Nextcloud, or the National Gallery of Art open-access collection — with a live info strip showing weather, S-Bahn departures, and Pi stats. Controlled via a web UI.
 
 ## Hardware
 
@@ -66,6 +66,8 @@ Copy `config.yaml.example` → `config.yaml` (never committed). Key settings:
 | `display.strip_text_color` | Hex color for info strip text (default: `#ffffff`) |
 | `sources.local_folder.path` | Path to local photo folder |
 | `sources.nextcloud.*` | WebDAV credentials for Nextcloud sync |
+| `sources.nga.enabled` | Enable National Gallery of Art collection |
+| `sources.nga.cache_size` | Number of NGA artworks to keep on disk (default: 50) |
 | `weather.api_key` | OpenWeatherMap API key |
 | `weather.city` | City name for weather |
 | `transit.mvg_global_id` | MVG stop identifier |
@@ -82,7 +84,18 @@ Access at `http://epaper-frame.local` (or by IP).
 - **Preview** — PNG of what's currently on the display
 - **Next Photo** — skip to next photo immediately
 - **Upload** — add a photo directly from the browser
-- **Config** — edit all settings including strip text color picker
+- **Config** — edit all settings including strip text color picker and photo source selection
+
+## Photo sources
+
+| Source | Description | Priority |
+|--------|-------------|----------|
+| **Upload** | Photos added via the web UI upload form | Highest — always shown next |
+| **National Gallery of Art** | ~50k open-access public domain artworks, downloaded automatically via IIIF API | High — exclusive when enabled |
+| **Local folder** | Photos from a folder on the Pi (default: `/home/pi/photos`) | Normal |
+| **Nextcloud** | Synced from a WebDAV/Nextcloud server | Normal |
+
+When NGA is enabled it takes over the display exclusively — disable it in Config to return to personal photos. Uploaded photos always jump to the front of the queue regardless of which other sources are active.
 
 ## Local development (no hardware)
 
