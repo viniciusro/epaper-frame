@@ -255,6 +255,32 @@ def create_app(config=None):
             thumb.unlink(missing_ok=True)
         return redirect(url_for('gallery'))
 
+    @app.get('/api/transit/directions')
+    def api_transit_directions():
+        """Return unique destinations for the configured stop+line from MVG live."""
+        import requests as _requests
+        cfg = _load_config()
+        transit_cfg = cfg.get('transit', {})
+        global_id = transit_cfg.get('mvg_global_id', 'de:09162:1740')
+        line_filter = transit_cfg.get('line', 'S8')
+        try:
+            resp = _requests.get(
+                'https://www.mvg.de/api/bgw-pt/v3/departures',
+                params={'globalId': global_id, 'limit': 80, 'transportTypes': 'SBAHN'},
+                headers={'Accept': 'application/json'},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            departures = resp.json()
+        except Exception as exc:
+            return jsonify({'error': str(exc), 'directions': []}), 502
+        directions = sorted({
+            d.get('destination', '')
+            for d in departures
+            if d.get('label', '') == line_filter and d.get('destination')
+        })
+        return jsonify({'directions': directions})
+
     @app.get('/api/status')
     def api_status():
         with _state_lock:
