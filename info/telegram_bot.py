@@ -21,19 +21,26 @@ class TelegramBot:
         logger.info('Telegram bot started')
 
     def _run(self):
-        # python-telegram-bot v20+ is async-first; create a fresh event loop for this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         try:
             from telegram.ext import Application, MessageHandler, filters
         except ImportError:
             logger.error('python-telegram-bot not installed — Telegram bot disabled')
             return
-        try:
+
+        async def _main():
             app = Application.builder().token(self._token).build()
             app.add_handler(MessageHandler(filters.PHOTO, self._handle_photo))
             app.add_handler(MessageHandler(~filters.PHOTO, self._handle_non_photo))
-            app.run_polling(drop_pending_updates=True)
+            # Manually manage the lifecycle to avoid signal handler issues in non-main thread
+            async with app:
+                await app.start()
+                await app.updater.start_polling(drop_pending_updates=True)
+                logger.info('Telegram bot polling started')
+                # Run forever until the thread is killed (daemon)
+                await asyncio.Event().wait()
+
+        try:
+            asyncio.run(_main())
         except Exception as exc:
             logger.error('Telegram bot error: %s', exc)
 
