@@ -235,27 +235,36 @@ class FrameController:
         sources = []
 
         local_cfg = sources_cfg.get('local_folder', {})
-        if local_cfg.get('enabled', True):
-            sources.append(LocalFolderSource(local_cfg))
-            logger.info('Source enabled: local (%s)', local_cfg.get('path', ''))
-
         upload_cfg = sources_cfg.get('upload', {})
+        nextcloud_cfg = sources_cfg.get('nextcloud', {})
+        nga_cfg = sources_cfg.get('nga', {})
+
+        nga_on       = nga_cfg.get('enabled', False)
+        nextcloud_on = nextcloud_cfg.get('enabled', False)
+
+        # Upload is always available (photos sent via Telegram or web UI
+        # jump the queue in every mode).
         if upload_cfg.get('enabled', True):
-            # Upload saves into the same local_folder path
-            upload_cfg = dict(upload_cfg)
-            upload_cfg.setdefault('path', local_cfg.get('path', 'data/uploads'))
-            sources.append(UploadSource(upload_cfg))
+            uc = dict(upload_cfg)
+            uc.setdefault('path', local_cfg.get('path', 'data/uploads'))
+            sources.append(UploadSource(uc))
             logger.info('Source enabled: upload')
 
-        nextcloud_cfg = sources_cfg.get('nextcloud', {})
-        if nextcloud_cfg.get('enabled', False):
-            sources.append(NextcloudSource(nextcloud_cfg))
-            logger.info('Source enabled: nextcloud')
-
-        nga_cfg = sources_cfg.get('nga', {})
-        if nga_cfg.get('enabled', False):
+        if nga_on:
+            # NGA mode — only NGA (upload handled above)
             sources.append(NGASource(nga_cfg))
-            logger.info('Source enabled: nga (National Gallery of Art)')
+            logger.info('Source enabled: nga (National Gallery of Art) [exclusive]')
+
+        elif nextcloud_on:
+            # Nextcloud mode — only Nextcloud (upload handled above)
+            sources.append(NextcloudSource(nextcloud_cfg))
+            logger.info('Source enabled: nextcloud [exclusive]')
+
+        else:
+            # Local mode — local folder + upload (already added)
+            if local_cfg.get('enabled', True):
+                sources.append(LocalFolderSource(local_cfg))
+                logger.info('Source enabled: local (%s)', local_cfg.get('path', ''))
 
         if not sources:
             logger.warning('No photo sources enabled')

@@ -40,20 +40,27 @@ class Shuffler:
             if not eligible:
                 raise RuntimeError('No photos available from any source')
 
-        # Weighted random: equal weight per source.
-        # If NGA is enabled and has photos, pick exclusively from NGA.
         source_buckets = {}
         for path, source_name in eligible:
             source_buckets.setdefault(source_name, []).append(path)
 
+        # Uploaded photos always jump the queue regardless of mode.
         if 'upload' in source_buckets:
             chosen_source = 'upload'
+
+        # NGA mode: exclusive — only NGA photos.
         elif 'nga' in source_buckets:
             chosen_source = 'nga'
+
+        # Nextcloud mode: exclusive — only Nextcloud photos.
+        elif 'nextcloud' in source_buckets:
+            chosen_source = 'nextcloud'
+
+        # Local mode: local folder only (upload already handled above).
         else:
             chosen_source = random.choice(list(source_buckets.keys()))
-        chosen_path = random.choice(source_buckets[chosen_source])
 
+        chosen_path = random.choice(source_buckets[chosen_source])
         self._record(chosen_path, chosen_source)
         return chosen_path
 
