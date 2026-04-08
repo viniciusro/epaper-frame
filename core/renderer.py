@@ -198,6 +198,17 @@ class Renderer:
         if strip_data is None:
             return strip
 
+        # Strip visibility config — default all enabled when absent
+        cfg = strip_data.get('strip_cfg') or {}
+        if not cfg.get('enabled', True):
+            return strip
+        show_weather  = cfg.get('weather', True)
+        show_transit  = cfg.get('transit', True)
+        show_ip       = cfg.get('ip', True)
+        show_cpu      = cfg.get('cpu_temp', True)
+        show_aqi      = cfg.get('aqi', True)
+        show_location = cfg.get('location', True)
+
         draw = ImageDraw.Draw(strip)
         font_large = _load_font(36, bold=True)
         font_small = _load_font(28, bold=True)
@@ -208,7 +219,7 @@ class Renderer:
 
         # --- LEFT: weather (row 0) + transit (rows 1-2) ---
         weather = strip_data.get('weather') or {}
-        if weather:
+        if show_weather and weather:
             temp = weather.get('temp', '')
             city = weather.get('city', '')
             cond = weather.get('condition', '')
@@ -220,28 +231,28 @@ class Renderer:
             draw.text((LEFT_X, y_positions[0]), '  '.join(parts),
                       font=font_large, fill=text_color)
 
-        transit = strip_data.get('transit') or []
-        for i, dep in enumerate(transit[:2]):
-            row = y_positions[i + 1]
-            t = dep.get('time', '')
-            delay = dep.get('delay', 0)
-            delay_str = 'on time' if delay == 0 else f'+{delay} min'
-            draw.text((LEFT_X, row), f'S8  {t}  {delay_str}',
-                      font=font_small, fill=text_color)
+        if show_transit:
+            transit = strip_data.get('transit') or []
+            for i, dep in enumerate(transit[:2]):
+                row = y_positions[i + 1]
+                t = dep.get('time', '')
+                delay = dep.get('delay', 0)
+                delay_str = 'on time' if delay == 0 else f'+{delay} min'
+                draw.text((LEFT_X, row), f'S8  {t}  {delay_str}',
+                          font=font_small, fill=text_color)
 
         # --- RIGHT: Pi stats (right-aligned) ---
         pi = strip_data.get('pi') or {}
         air = strip_data.get('air') or {}
         right_lines = []
-        if pi.get('ip'):
+        if show_ip and pi.get('ip'):
             right_lines.append(pi['ip'])
-        if pi.get('cpu_temp') is not None:
+        if show_cpu and pi.get('cpu_temp') is not None:
             right_lines.append(f"CPU {pi['cpu_temp']}°C")
         # Line 3 priority: GPS location > AQI label > updated time
         line3 = (
-            strip_data.get('location')
-            or (f"AQI: {air['label']}" if air.get('label') else None)
-            or (f"updated {pi['updated']}" if pi.get('updated') else None)
+            (strip_data.get('location') if show_location else None)
+            or (f"AQI: {air['label']}" if show_aqi and air.get('label') else None)
         )
         if line3:
             right_lines.append(line3)

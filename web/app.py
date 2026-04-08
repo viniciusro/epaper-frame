@@ -109,6 +109,14 @@ def create_app(config=None):
         cfg['display']['strip_text_color'] = f.get('strip_text_color', '#ffffff')
         cfg['display']['sleep_start'] = f.get('sleep_start', '').strip()
         cfg['display']['sleep_end'] = f.get('sleep_end', '').strip()
+        cfg['display'].setdefault('strip', {})
+        cfg['display']['strip']['enabled'] = 'strip_enabled' in f
+        cfg['display']['strip']['weather'] = 'strip_weather' in f
+        cfg['display']['strip']['transit'] = 'strip_transit' in f
+        cfg['display']['strip']['ip'] = 'strip_ip' in f
+        cfg['display']['strip']['cpu_temp'] = 'strip_cpu_temp' in f
+        cfg['display']['strip']['aqi'] = 'strip_aqi' in f
+        cfg['display']['strip']['location'] = 'strip_location' in f
 
         cfg.setdefault('weather', {})
         cfg['weather']['api_key'] = f.get('weather_api_key', '')
@@ -198,7 +206,7 @@ def create_app(config=None):
     @app.get('/thumb/<path:filename>')
     def thumb(filename):
         from werkzeug.utils import secure_filename as _secure
-        from PIL import ImageOps as _ImageOps
+        from PIL import Image as _Image, ImageOps as _ImageOps
         safe = _secure(filename)
         if not safe:
             return 'Invalid filename', 400
@@ -210,9 +218,9 @@ def create_app(config=None):
             if original is None:
                 return 'Not found', 404
             try:
-                img = Image.open(original)
+                img = _Image.open(original)
                 img = _ImageOps.exif_transpose(img)
-                img.thumbnail((200, 150), Image.LANCZOS)
+                img.thumbnail((200, 150), _Image.LANCZOS)
                 img = img.convert('RGB')
                 img.save(str(cache_path), 'JPEG', quality=70)
             except Exception as exc:

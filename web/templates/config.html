@@ -48,6 +48,33 @@
       <input type="number" name="no_repeat_days" value="{{ config.get('display', {}).get('no_repeat_days', 7) }}" min="1">
     </div>
     <div class="field">
+      <label>Info strip</label>
+      <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.2rem">
+        {% set s = config.get('display',{}).get('strip',{}) %}
+        <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
+          <input type="checkbox" name="strip_enabled" {% if s.get('enabled', True) %}checked{% endif %}> Enable strip
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
+          <input type="checkbox" name="strip_weather" {% if s.get('weather', True) %}checked{% endif %}> Weather
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
+          <input type="checkbox" name="strip_transit" {% if s.get('transit', True) %}checked{% endif %}> Transit departures
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
+          <input type="checkbox" name="strip_ip" {% if s.get('ip', True) %}checked{% endif %}> IP address
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
+          <input type="checkbox" name="strip_cpu_temp" {% if s.get('cpu_temp', True) %}checked{% endif %}> CPU temperature
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
+          <input type="checkbox" name="strip_aqi" {% if s.get('aqi', True) %}checked{% endif %}> Air quality (AQI)
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
+          <input type="checkbox" name="strip_location" {% if s.get('location', True) %}checked{% endif %}> Photo location (GPS)
+        </label>
+      </div>
+    </div>
+    <div class="field">
       <label>Sleep from <span class="note">HH:MM, 24h — blank to disable</span></label>
       <input type="text" name="sleep_start"
              value="{{ config.get('display', {}).get('sleep_start', '') }}"

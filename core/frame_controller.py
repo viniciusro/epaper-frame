@@ -215,6 +215,7 @@ class FrameController:
         live_cfg = webapp._load_config()
         hex_color = live_cfg.get('display', {}).get('strip_text_color', '#ffffff')
         strip_fg = _hex_to_rgb(hex_color)
+        strip_data['strip_cfg'] = live_cfg.get('display', {}).get('strip', {})
         rendered = self._renderer.render(photo_path, strip_data, strip_fg=strip_fg)
 
         # Push to display
