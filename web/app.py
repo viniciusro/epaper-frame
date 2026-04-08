@@ -210,7 +210,7 @@ def create_app(config=None):
         safe = _secure(filename)
         if not safe:
             return 'Invalid filename', 400
-        thumb_dir = Path('data/cache/thumbs')
+        thumb_dir = (_CONFIG_PATH.parent / 'data/cache/thumbs').resolve()
         thumb_dir.mkdir(parents=True, exist_ok=True)
         cache_path = thumb_dir / safe
         if not cache_path.exists():
