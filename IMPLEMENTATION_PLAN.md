@@ -757,12 +757,26 @@ sudo journalctl -u epaper-frame -f
 
 | Feature | Notes |
 |---------|-------|
-| ~~WiFi hotspot setup wizard~~ | Promoted to Phase 11 below |
+| WiFi hotspot setup wizard | Phase 11 attempted but rolled back — Pi lost network; retry with tested AP+STA approach |
 | Google Photos integration | OAuth2 flow, album selection |
 | OTA updates | pull latest from GitHub via web UI |
 | Multiple display profiles | different strip layouts, seasonal themes |
-| ~~Strip color picker~~ | ✅ Done — web UI color picker, saved to config.yaml, live-read on each render |
-| 24h forced refresh watchdog | ✅ Done — `_info_refresh_loop` fires `_next_event` if no display in 24h (supplier recommendation) |
+| ~~Strip color picker~~ | ✅ Done (Phase 12.7) — color picker in Config, live-read on each render |
+| ~~Strip element toggles~~ | ✅ Done (Phase 12.7) — per-element checkboxes in Config |
+| ~~24h forced refresh watchdog~~ | ✅ Done — `_info_refresh_loop` fires `_next_event` if no display in 24h |
+| ~~HTTPS / self-signed TLS~~ | ✅ Done (Phase 12.1) |
+| ~~Display sleep schedule~~ | ✅ Done (Phase 12.2) |
+| ~~Air quality (AQI) in strip~~ | ✅ Done (Phase 12.3) |
+| ~~GPS location from EXIF~~ | ✅ Done (Phase 12.4) |
+| ~~Photo gallery (browse + delete)~~ | ✅ Done (Phase 12.5) |
+| ~~Telegram bot (send photo → display)~~ | ✅ Done (Phase 12.6) |
+| ~~National Gallery of Art source~~ | ✅ Done (Phase 12.8) |
+| More feature ideas | See `docs/IDEAS.md` |
+
+### Still pending from Phase 9.4 (resilience tests)
+- [ ] WiFi disconnect → frame keeps displaying last image, recovers when WiFi returns
+- [ ] MVG API down → S8 section shows "unavailable" gracefully
+- [ ] Service restarts automatically after crash
 
 ---
 
@@ -772,78 +786,128 @@ sudo journalctl -u epaper-frame -f
 **Goal:** Pi broadcasts its own `epaper-frame` hotspot at all times (AP+STA). On first boot with no WiFi configured, user connects to the hotspot and uses a captive portal to enter their home WiFi credentials. Product-ready onboarding flow.
 **Environment:** 🔧 HW
 
+> **⚠️ ROLLED BACK — 2026-04-08**
+> AP+STA hostapd/dnsmasq config caused the Pi to lose network connectivity after a reboot. All Phase 11 code changes were reverted to the last stable commit. The implementation is deferred — see Deferred table below. The config files in `deployment/` remain for reference but the Pi is NOT running them.
+
 ---
 
 ### Step 11.1 — AP+STA network interface setup
 - [x] `deployment/network/12-uap0.network` — static IP `192.168.4.1/24` for `uap0`
 - [x] `deployment/services/create-uap0.service` — oneshot creates `uap0` via `iw`, before hostapd
-- [ ] Verify on Pi: `ip addr show uap0` shows `192.168.4.1` after reboot
+- [ ] Verify on Pi: `ip addr show uap0` shows `192.168.4.1` after reboot ← **NOT tested (rolled back)**
 
-**Result:** Config files created. Requires `pi_setup.sh` deploy to activate on Pi.
+**Result:** Config files created but not active on Pi.
 
 ---
 
 ### Step 11.2 — hostapd (AP broadcast)
 - [x] `deployment/hostapd/hostapd.conf` — SSID `epaper-frame`, WPA2, password `epaperframe`, channel 6
-- [ ] Verify: phone can see and connect to `epaper-frame` SSID
-
-**Result:** Config file created. Deployed via `pi_setup.sh`.
+- [ ] Verify: phone can see and connect to `epaper-frame` SSID ← **NOT tested (rolled back)**
 
 ---
 
 ### Step 11.3 — dnsmasq (DHCP for hotspot clients)
 - [x] `deployment/dnsmasq/epaper-frame.conf` — DHCP range `192.168.4.10-50`, resolves `epaper-frame.local` → `192.168.4.1`
-- [ ] Verify: phone gets IP in `192.168.4.x`, `http://192.168.4.1:5000` opens web UI
-
-**Result:** Config file created. Deployed via `pi_setup.sh`.
+- [ ] Verify: phone gets IP in `192.168.4.x` ← **NOT tested (rolled back)**
 
 ---
 
-### Step 11.4 — First-boot detection
-- [x] `_wifi_configured()` in `frame_controller.py` — checks `wpa_supplicant.conf` for `network={` blocks
-- [x] `render_setup_screen()` in `renderer.py` — black screen with WiFi connection instructions
-- [x] Display loop shows setup screen and waits for WiFi save before rebooting
-- [ ] Test on Pi without WiFi configured
-
-**Result:** Code implemented. On first boot with no WiFi, display shows setup instructions.
+### Step 11.4–11.7 — First-boot detection, WiFi wizard, pi_setup.sh, end-to-end test
+- [ ] All deferred — see rollback note above.
 
 ---
 
-### Step 11.5 — WiFi setup wizard (web UI)
-- [x] `GET /wifi` — scans SSIDs via `iwlist`, renders `wifi.html`
-- [x] `POST /wifi` — validates input, writes `wpa_supplicant.conf` via `sudo tee`, triggers reboot
-- [x] `web/templates/wifi.html` — SSID dropdown + password field
-- [x] `web/templates/wifi_saved.html` — confirmation screen with next steps
-- [x] `POST /wifi` restricted to `192.168.4.x` subnet
-- [x] WiFi Setup link added to `index.html`
-- [ ] End-to-end test on Pi
+## Phase 12 — Feature Additions (Post-Integration)
+**Goal:** Features added after Phase 10 that brought the frame to its current state.
+**Environment:** 🔧 HW + 💻 PC
 
-**Result:** Full WiFi wizard implemented. Accessible at `/wifi`.
+### Step 12.1 — HTTPS / TLS
+- [x] `web/app.py`: added `ssl_context()` — returns `(cert, key)` tuple if `data/ssl/cert.pem` + `key.pem` exist, else None (plain HTTP fallback)
+- [x] `deployment/pi_setup.sh`: added `openssl req -x509 -newkey rsa:2048 -keyout data/ssl/key.pem -out data/ssl/cert.pem -days 3650 -nodes -subj "/CN=epaper-frame"` step
+- [x] Web UI accessible at `https://epaper-frame.local` (self-signed cert, accept browser warning once)
 
----
-
-### Step 11.6 — pi_setup.sh updates
-- [x] `hostapd` + `dnsmasq` + `wireless-tools` installed
-- [x] `create-uap0.service` and `12-uap0.network` deployed
-- [x] `hostapd.conf` and `epaper-frame.conf` (dnsmasq) deployed
-- [x] `sudoers` entry: `pi` can run `reboot`, `iwlist`, `tee wpa_supplicant.conf` without password
-- [x] `data/cache/nga` directory created
-- [ ] Test on fresh Pi OS image
-
-**Result:** pi_setup.sh fully updated for AP+STA mode.
+**Result:** TLS working on Pi. Plain HTTP fallback if cert files absent (local dev).
 
 ---
 
-### Step 11.7 — End-to-end test
-- [ ] Flash fresh Pi OS, run `pi_setup.sh`
-- [ ] Boot without home WiFi → display shows setup screen
-- [ ] Connect phone to `epaper-frame` SSID
-- [ ] Open `http://192.168.4.1:5000/wifi` → WiFi picker appears
-- [ ] Select home network, enter password → Pi reboots
-- [ ] Pi connects to home WiFi + keeps broadcasting `epaper-frame` AP
-- [ ] Web UI accessible via both `192.168.4.1:5000` and `epaper-frame.local:5000`
+### Step 12.2 — Display sleep schedule
+- [x] `core/display.py`: added `clear()` — shows blank white image
+- [x] `core/frame_controller.py`: added `_in_sleep_window(sleep_start, sleep_end)` module helper with midnight-crossing logic; sleep check loop at top of `_display_loop()` — clears display and blocks (60s poll) until outside window
+- [x] `web/app.py`: added `sleeping_until` to state dict and index template; sleep fields in config POST
+- [x] `web/templates/config.html`: "Sleep from" / "Wake at" HH:MM fields in Display fieldset
+- [x] `web/templates/index.html`: "Sleeping until" status row (shown only when sleeping)
+- [x] `config.yaml.example`: added `sleep_start: ""` / `sleep_end: ""`
 
-**Result:** _________________
+**Result:** User sets sleep window in Config. Display clears at sleep_start, resumes at sleep_end. Web UI shows sleeping state.
+
+---
+
+### Step 12.3 — Air quality (AQI) in info strip
+- [x] `info/air_quality.py` (new): `AirQualityFetcher` — OpenWeatherMap Air Pollution API (`/data/2.5/air_pollution`); returns `{'aqi': int, 'label': str}` from AQI index 1–5; in-memory TTL cache
+- [x] `info/weather.py`: added `lat` and `lon` to result dict (from `data['coord']`)
+- [x] `core/frame_controller.py`: wires up `AirQualityFetcher`; fetches AQI after weather using returned lat/lon; pushes `air=` to `webapp.update_state()`
+- [x] `web/app.py`: added `air: None` to state; passes `air` to index template
+- [x] `web/templates/index.html`: AQI label shown in weather section
+- [x] `core/renderer.py`: right-column line 3 priority: GPS location → AQI label → (nothing)
+
+**Result:** AQI label ("Good" / "Fair" / "Moderate" / "Poor" / "Very Poor") shown in strip and status page. Reuses weather API key — no extra key needed.
+
+---
+
+### Step 12.4 — GPS location from EXIF in strip
+- [x] `core/renderer.py`:
+  - `_geo_cache: dict[str, str]` — module-level reverse-geocode cache (keyed by rounded lat/lon)
+  - `_extract_gps(img)` — reads GPSInfo IFD (tag 0x8825) via PIL `getexif()`, converts Rational tuples to decimal degrees; returns `(lat, lon)` or None
+  - `_reverse_geocode(lat, lon)` — Nominatim `/reverse?format=json`, `User-Agent: epaper-frame/1.0`, timeout 5s; returns `"City, Country"` or None; cached
+  - `Renderer.__init__()` added with `self._last_location: str | None = None`
+  - `load()`: extracts GPS after `exif_transpose`, stores result in `self._last_location`
+  - `render()`: injects `sd['location'] = self._last_location` into strip_data
+
+**Result:** Photos with GPS EXIF show location name in strip bottom-right. No API key required (Nominatim is free).
+
+---
+
+### Step 12.5 — Photo gallery
+- [x] `web/app.py`: three new routes inside `create_app()`:
+  - `GET /gallery` — collects photos from LocalFolderSource + UploadSource (deduplicated by resolved path), renders `gallery.html`
+  - `GET /thumb/<path:filename>` — generates 200×150 JPEG thumbnail into `data/cache/thumbs/`; uses `secure_filename`; PIL imported locally inside route
+  - `POST /delete/<path:filename>` — `secure_filename` + path traversal guard (`is_relative_to(allowed_root)`); unlinks file + cached thumb
+- [x] `web/templates/gallery.html` (new): dark monospace CSS grid (`repeat(auto-fill, minmax(180px, 1fr))`), lazy-loaded thumbnails, confirm-on-delete button, back link
+
+**Result:** Gallery accessible at `/gallery`. Thumbnails generated on first access and cached. Delete restricted to files within the configured local folder.
+
+---
+
+### Step 12.6 — Telegram bot (send photo → display)
+- [x] `info/telegram_bot.py` (new): `TelegramBot` class; daemon thread with `asyncio.run()` + manual `async with app` lifecycle (avoids `set_wakeup_fd` restriction in non-main threads); photo handler downloads largest size to upload folder and sets `next_photo_event`; non-photo handler replies with usage hint; immediate acknowledgement reply before download
+- [x] `core/frame_controller.py`: instantiates `TelegramBot(config['telegram'], upload_folder, self._next_event)`; calls `self._telegram.start()` in `run()`
+- [x] `web/templates/config.html`: Telegram Bot fieldset with password input for `bot_token`
+- [x] `web/app.py` config POST: writes `cfg['telegram']['bot_token']`
+- [x] `config.yaml.example`: added `telegram: bot_token: ""` section
+- [x] `requirements.txt`: added `python-telegram-bot>=21.0,<22.0`
+
+**Result:** Send any photo to the Telegram bot → it's downloaded to the upload folder and triggers the next display cycle. Bot replies with confirmation. Leave token blank to disable.
+
+---
+
+### Step 12.7 — Info strip element toggles
+- [x] `config.yaml.example`: added full `display.strip` section with boolean flags: `enabled`, `weather`, `transit`, `ip`, `cpu_temp`, `aqi`, `location`; added `strip_text_color: "#ffffff"`
+- [x] `web/templates/config.html`: checkboxes for each strip element in Display fieldset; color picker for strip text color
+- [x] `web/app.py` config POST: reads all strip checkbox values; writes `cfg['display']['strip']` and `strip_text_color`
+- [x] `core/frame_controller.py`: passes `strip_cfg = live_cfg.get('display',{}).get('strip',{})` into strip_data on each cycle
+- [x] `core/renderer.py`: `render_strip()` reads `strip_data.get('strip_cfg')`, respects each flag (default True when absent)
+
+**Result:** Every strip element can be individually enabled/disabled from the Config page without restarting the service.
+
+---
+
+### Step 12.8 — National Gallery of Art (NGA) photo source
+- [x] `sources/nga.py`: `NGASource` — fetches random public-domain artworks from NGA IIIF API; caches up to `cache_size` images in `data/cache/nga/`; when enabled, takes exclusive control (Shuffler returns NGA photos only)
+- [x] `web/templates/config.html`: NGA fieldset (enabled toggle + cache_size)
+- [x] `web/app.py` config POST: writes `cfg['sources']['nga']`
+- [x] `config.yaml.example`: added `sources.nga` section
+
+**Result:** Enable NGA in Config to display public-domain artworks from the National Gallery of Art collection (~50k items). Disable to return to personal photos.
 
 ---
 

@@ -66,38 +66,55 @@ Copy `config.yaml.example` → `config.yaml` (never committed). Key settings:
 | `display.interval_minutes` | How often to change photo (default: 60) |
 | `display.no_repeat_days` | Days before a photo can repeat (default: 7) |
 | `display.strip_text_color` | Hex color for info strip text (default: `#ffffff`) |
+| `display.sleep_start` / `sleep_end` | HH:MM hours — display blanks during this window |
+| `display.strip.*` | Enable/disable individual strip elements (weather, transit, IP, CPU, AQI, location) |
 | `sources.local_folder.path` | Path to local photo folder |
 | `sources.nextcloud.*` | WebDAV credentials for Nextcloud sync |
 | `sources.nga.enabled` | Enable National Gallery of Art collection |
 | `sources.nga.cache_size` | Number of NGA artworks to keep on disk (default: 50) |
-| `weather.api_key` | OpenWeatherMap API key |
+| `weather.api_key` | OpenWeatherMap API key (also used for air quality) |
 | `weather.city` | City name for weather |
 | `transit.mvg_global_id` | MVG stop identifier |
 | `transit.direction_filter` | Filter departures by destination |
-| `web.port` | Web UI port (default: 80) |
+| `telegram.bot_token` | Telegram bot token from @BotFather — leave blank to disable |
+| `web.port` | Web UI port (default: 5000) |
 
-Most settings can be changed live from the web UI at `http://epaper-frame.local` without restarting the service.
+Most settings can be changed live from the web UI without restarting the service.
 
 ## Web UI
 
-Access at `http://epaper-frame.local` (or by IP).
+Access at `https://epaper-frame.local:5000` (or by IP). Uses a self-signed TLS certificate — accept the browser warning once.
 
-- **Status page** — current photo, countdown to next refresh, weather, S-Bahn departures, Pi stats
+- **Status** — current photo, countdown, weather + AQI, S-Bahn departures, Pi stats
+- **Gallery** — browse and delete photos from the local folder
 - **Preview** — PNG of what's currently on the display
 - **Next Photo** — skip to next photo immediately
 - **Upload** — add a photo directly from the browser
-- **Config** — edit all settings including strip text color picker and photo source selection
+- **Config** — all settings: display, strip toggles, sleep schedule, weather, transit, Nextcloud, NGA, Telegram bot token
 
 ## Photo sources
 
 | Source | Description | Priority |
 |--------|-------------|----------|
-| **Upload** | Photos added via the web UI upload form | Highest — always shown next |
+| **Upload** | Photos added via web UI or Telegram bot | Highest — always shown next |
 | **National Gallery of Art** | ~50k open-access public domain artworks, downloaded automatically via IIIF API | High — exclusive when enabled |
 | **Local folder** | Photos from a folder on the Pi (default: `/home/pi/photos`) | Normal |
 | **Nextcloud** | Synced from a WebDAV/Nextcloud server | Normal |
 
-When NGA is enabled it takes over the display exclusively — disable it in Config to return to personal photos. Uploaded photos always jump to the front of the queue regardless of which other sources are active.
+When NGA is enabled it takes over the display exclusively — disable it in Config to return to personal photos. Uploaded photos (web or Telegram) always jump to the front of the queue.
+
+## Telegram bot
+
+Create a bot via @BotFather, paste the token into Config. Send any photo to the bot and it will appear on the display at the next refresh cycle.
+
+## Info strip
+
+The bottom 150px of the display shows live info overlaid on the photo:
+
+- **Left:** weather (temp, city, condition) + next 2 S-Bahn departures with delay
+- **Right:** IP address, CPU temperature, and one of: GPS location (from photo EXIF) / AQI / last updated time
+
+Each element can be individually enabled or disabled in Config → Info strip.
 
 ## Local development (no hardware)
 

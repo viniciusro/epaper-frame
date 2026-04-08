@@ -2,8 +2,17 @@ display:
   interval_minutes: 60
   no_repeat_days: 7
   orientation: portrait
+  strip_text_color: "#ffffff"
   sleep_start: ""   # HH:MM — display blanks at this hour (blank to disable)
   sleep_end: ""     # HH:MM — display resumes at this hour
+  strip:
+    enabled: true
+    weather: true
+    transit: true
+    ip: true
+    cpu_temp: true
+    aqi: true
+    location: true  # GPS reverse-geocode (requires photo EXIF GPS data)
 
 sources:
   local_folder:
