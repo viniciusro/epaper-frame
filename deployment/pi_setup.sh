@@ -10,7 +10,8 @@ REPO_DIR="/home/pi/epaper-frame"
 sudo apt-get update
 sudo apt-get install -y \
     python3-pip python3-venv python3-dev \
-    libgpiod-dev git rsync
+    libgpiod-dev git rsync \
+    fonts-dejavu-core
 
 echo ">>> System packages installed"
 

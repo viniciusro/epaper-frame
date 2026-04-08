@@ -112,6 +112,11 @@ class FrameController:
         """Main display loop — runs forever in the calling thread."""
         logger.info('Display loop started')
 
+        # Give the info-refresh thread time to complete its first fetch
+        # before the first display cycle so the strip has live data.
+        logger.info('Waiting for first info fetch…')
+        time.sleep(10)
+
         while True:
             try:
                 self._do_display_cycle()
