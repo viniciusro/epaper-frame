@@ -2,6 +2,8 @@ display:
   interval_minutes: 60
   no_repeat_days: 7
   orientation: portrait
+  sleep_start: ""   # HH:MM — display blanks at this hour (blank to disable)
+  sleep_end: ""     # HH:MM — display resumes at this hour
 
 sources:
   local_folder:
@@ -40,6 +42,9 @@ transit:
 web:
   port: 80
   secret_key: ""
+
+telegram:
+  bot_token: ""   # from @BotFather — leave blank to disable
 
 pi:
   hostname: epaper-frame

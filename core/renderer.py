@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,58 @@ def _make_palette_image():
     return pal
 
 _PALETTE_IMAGE = _make_palette_image()
+
+# Cache of rounded (lat, lon) → "City, Country" to avoid repeated Nominatim calls
+_geo_cache: dict[str, str] = {}
+
+
+def _extract_gps(img: Image.Image) -> tuple[float, float] | None:
+    """Extract GPS coordinates from PIL image EXIF. Returns (lat, lon) or None."""
+    try:
+        exif = img.getexif()
+        if not exif:
+            return None
+        gps_ifd = exif.get_ifd(0x8825)  # GPSInfo tag
+        if not gps_ifd:
+            return None
+
+        def _to_decimal(vals, ref):
+            d, m, s = float(vals[0]), float(vals[1]), float(vals[2])
+            dec = d + m / 60 + s / 3600
+            return -dec if ref in ('S', 'W') else dec
+
+        lat = _to_decimal(gps_ifd.get(2, (0, 0, 0)), gps_ifd.get(1, 'N'))
+        lon = _to_decimal(gps_ifd.get(4, (0, 0, 0)), gps_ifd.get(3, 'E'))
+        if lat == 0.0 and lon == 0.0:
+            return None
+        return lat, lon
+    except Exception:
+        return None
+
+
+def _reverse_geocode(lat: float, lon: float) -> str | None:
+    """Reverse-geocode (lat, lon) to 'City, Country' using Nominatim. Cached."""
+    key = f'{lat:.2f},{lon:.2f}'
+    if key in _geo_cache:
+        return _geo_cache[key]
+    try:
+        resp = requests.get(
+            'https://nominatim.openstreetmap.org/reverse',
+            params={'format': 'json', 'lat': lat, 'lon': lon},
+            headers={'User-Agent': 'epaper-frame/1.0'},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        addr = resp.json().get('address', {})
+        city = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('county', '')
+        country = addr.get('country', '')
+        result = ', '.join(p for p in [city, country] if p) or None
+        if result:
+            _geo_cache[key] = result
+        return result
+    except Exception as exc:
+        logger.warning('Reverse geocode failed: %s', exc)
+        return None
 
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
@@ -71,6 +124,9 @@ class Renderer:
     WIDTH = WIDTH
     HEIGHT = HEIGHT
 
+    def __init__(self):
+        self._last_location: str | None = None
+
     # ------------------------------------------------------------------ #
     # Public API                                                           #
     # ------------------------------------------------------------------ #
@@ -78,12 +134,17 @@ class Renderer:
     def render(self, path, strip_data=None, strip_fg=(255, 255, 255)) -> Image.Image:
         """Full pipeline: load → fit → compose → return RGB Image."""
         image = self.load(path)
-        return self.compose(image, strip_data, strip_fg=strip_fg)
+        sd = dict(strip_data) if strip_data else {}
+        if self._last_location:
+            sd['location'] = self._last_location
+        return self.compose(image, sd, strip_fg=strip_fg)
 
     def load(self, path) -> Image.Image:
-        """Open image, apply EXIF rotation, return RGB."""
+        """Open image, apply EXIF rotation, extract GPS location, return RGB."""
         img = Image.open(path)
         img = ImageOps.exif_transpose(img)  # respect camera orientation
+        gps = _extract_gps(img)
+        self._last_location = _reverse_geocode(*gps) if gps else None
         return img.convert('RGB')
 
     def fit_image(self, image: Image.Image) -> Image.Image:
@@ -170,13 +231,20 @@ class Renderer:
 
         # --- RIGHT: Pi stats (right-aligned) ---
         pi = strip_data.get('pi') or {}
+        air = strip_data.get('air') or {}
         right_lines = []
         if pi.get('ip'):
             right_lines.append(pi['ip'])
         if pi.get('cpu_temp') is not None:
             right_lines.append(f"CPU {pi['cpu_temp']}°C")
-        if pi.get('updated'):
-            right_lines.append(f"updated {pi['updated']}")
+        # Line 3 priority: GPS location > AQI label > updated time
+        line3 = (
+            strip_data.get('location')
+            or (f"AQI: {air['label']}" if air.get('label') else None)
+            or (f"updated {pi['updated']}" if pi.get('updated') else None)
+        )
+        if line3:
+            right_lines.append(line3)
 
         for i, line in enumerate(right_lines[:3]):
             font = font_large if i == 0 else font_small

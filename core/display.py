@@ -46,6 +46,10 @@ class Display:
         epd = EPD()
         epd.sleep()
 
+    def clear(self):
+        """Blank the display to white (used during sleep schedule)."""
+        self.show(Image.new('RGB', (self.WIDTH, self.HEIGHT), (255, 255, 255)))
+
     def test_pattern(self):
         """Render 6 color blocks across the full display area."""
         img = Image.new('RGB', (self.WIDTH, self.HEIGHT), (255, 255, 255))

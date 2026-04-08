@@ -48,6 +48,18 @@
       <input type="number" name="no_repeat_days" value="{{ config.get('display', {}).get('no_repeat_days', 7) }}" min="1">
     </div>
     <div class="field">
+      <label>Sleep from <span class="note">HH:MM, 24h — blank to disable</span></label>
+      <input type="text" name="sleep_start"
+             value="{{ config.get('display', {}).get('sleep_start', '') }}"
+             style="max-width:100px" placeholder="00:00">
+    </div>
+    <div class="field">
+      <label>Wake at <span class="note">HH:MM — display resumes at this hour</span></label>
+      <input type="text" name="sleep_end"
+             value="{{ config.get('display', {}).get('sleep_end', '') }}"
+             style="max-width:100px" placeholder="08:00">
+    </div>
+    <div class="field">
       <label>Strip text color</label>
       <div class="color-row">
         <input type="color" id="color_picker"
@@ -144,6 +156,15 @@
     <div class="field">
       <label>Cache size <span class="note">artworks to keep on disk</span></label>
       <input type="number" name="nga_cache_size" value="{{ config.get('sources',{}).get('nga',{}).get('cache_size', 50) }}" min="10" max="500" style="max-width:100px">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Telegram Bot</legend>
+    <div class="field">
+      <label>Bot token <span class="note">from @BotFather — leave blank to disable</span></label>
+      <input type="password" name="telegram_bot_token"
+             value="{{ config.get('telegram', {}).get('bot_token', '') }}">
     </div>
   </fieldset>
 

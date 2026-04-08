@@ -7,7 +7,9 @@ import web.app as webapp
 from core.display import Display
 from core.renderer import Renderer
 from core.shuffler import Shuffler
+from info.air_quality import AirQualityFetcher
 from info.pi_stats import PiStats
+from info.telegram_bot import TelegramBot
 from info.transit import TransitFetcher
 from info.weather import WeatherFetcher
 from sources.local import LocalFolderSource
@@ -18,6 +20,18 @@ from sources.upload import UploadSource
 logger = logging.getLogger(__name__)
 
 _INFO_REFRESH_INTERVAL = 30  # seconds between info polling loops
+
+
+def _in_sleep_window(sleep_start: str, sleep_end: str) -> bool:
+    """Return True if current local time is within the [sleep_start, sleep_end) window.
+    Handles midnight-crossing ranges (e.g. 23:00 → 07:00)."""
+    from datetime import time as dtime
+    now = datetime.now().time()
+    start = dtime(*map(int, sleep_start.split(':')))
+    end   = dtime(*map(int, sleep_end.split(':')))
+    if start <= end:
+        return start <= now < end
+    return now >= start or now < end
 
 
 def _hex_to_rgb(hex_color: str) -> tuple:
@@ -43,9 +57,16 @@ class FrameController:
         self._weather = WeatherFetcher(config.get('weather', {}))
         self._transit = TransitFetcher(config.get('transit', {}))
         self._pi_stats = PiStats()
+        self._air_quality = AirQualityFetcher(config.get('weather', {}))
 
         # Wiring: use the event already in web.app so POST /next wakes us
         self._next_event = webapp.next_photo_event
+
+        # Telegram bot (no-op if token not configured)
+        upload_folder = Path(
+            webapp._load_config().get('sources', {}).get('local_folder', {}).get('path', 'data/uploads')
+        )
+        self._telegram = TelegramBot(config.get('telegram', {}), upload_folder, self._next_event)
 
         # Watchdog: track last successful display time for 24h forced refresh
         self._last_display_at = datetime.now()
@@ -61,6 +82,7 @@ class FrameController:
         # Daemon threads — die when main thread exits
         threading.Thread(target=self._info_refresh_loop, daemon=True, name='info-refresh').start()
         self._start_web_thread()
+        self._telegram.start()
 
         # Block here
         self._display_loop()
@@ -97,7 +119,10 @@ class FrameController:
                 weather = self._weather.fetch()
                 transit = self._transit.fetch()
                 pi = self._pi_stats.fetch()
-                webapp.update_state(weather=weather, transit=transit, pi=pi)
+                air = None
+                if weather and weather.get('lat') is not None:
+                    air = self._air_quality.fetch(weather['lat'], weather['lon'])
+                webapp.update_state(weather=weather, transit=transit, pi=pi, air=air)
                 logger.debug('Info refreshed')
             except Exception:
                 logger.exception('Info refresh error')
@@ -118,6 +143,20 @@ class FrameController:
         time.sleep(10)
 
         while True:
+            live_cfg = webapp._load_config()
+            sleep_start = live_cfg.get('display', {}).get('sleep_start', '')
+            sleep_end   = live_cfg.get('display', {}).get('sleep_end', '')
+            if sleep_start and sleep_end and _in_sleep_window(sleep_start, sleep_end):
+                logger.info('Display sleeping until %s', sleep_end)
+                webapp.update_state(status='sleeping', sleeping_until=sleep_end)
+                self._display.clear()
+                while _in_sleep_window(sleep_start, sleep_end):
+                    self._next_event.wait(timeout=60)
+                    self._next_event.clear()
+                webapp.update_state(status='idle', sleeping_until=None)
+                logger.info('Display waking up')
+                continue  # skip to next iteration → run display cycle immediately
+
             try:
                 self._do_display_cycle()
             except Exception:
@@ -165,6 +204,7 @@ class FrameController:
                 'weather': webapp._state.get('weather'),
                 'transit': webapp._state.get('transit', []),
                 'pi': webapp._state.get('pi', {}),
+                'air': webapp._state.get('air'),
             }
 
         # Select + render

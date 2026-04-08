@@ -57,6 +57,12 @@
     </span>
   </div>
   <div class="row"><span class="label">Current photo</span><span class="value">{{ last_photo or '—' }}</span></div>
+  {% if sleeping_until %}
+  <div class="row">
+    <span class="label">Sleeping until</span>
+    <span class="value status-rendering">{{ sleeping_until }}</span>
+  </div>
+  {% endif %}
   <div class="row">
     <span class="label">Next refresh</span>
     <span class="value" id="countdown">
@@ -123,6 +129,7 @@
         <button type="submit">Next Photo</button>
       </form>
       <a class="btn" href="/preview" target="_blank">Preview</a>
+      <a class="btn" href="/gallery">Gallery</a>
       <a class="btn" href="/config">Config</a>
     </div>
     <form method="post" action="/upload" enctype="multipart/form-data" class="upload-row">

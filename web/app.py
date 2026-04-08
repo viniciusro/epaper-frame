@@ -16,10 +16,12 @@ _state = {
     'last_photo': None,       # Path or None
     'next_update_at': None,   # datetime or None
     'last_refresh': None,     # datetime or None
-    'status': 'idle',         # idle | rendering | refreshing
+    'status': 'idle',         # idle | rendering | refreshing | sleeping
     'weather': None,
     'transit': [],
     'pi': {},
+    'air': None,
+    'sleeping_until': None,   # HH:MM string or None
 }
 _state_lock = threading.Lock()
 
@@ -83,6 +85,7 @@ def create_app(config=None):
             last_photo=Path(state['last_photo']).name if state['last_photo'] else None,
             next_in=next_in,
             status=state.get('status', 'idle'),
+            sleeping_until=state.get('sleeping_until'),
             weather=state.get('weather'),
             transit=state.get('transit', []),
             pi=state.get('pi', {}),
@@ -103,6 +106,8 @@ def create_app(config=None):
         cfg['display']['interval_minutes'] = int(f.get('interval_minutes', 60))
         cfg['display']['no_repeat_days'] = int(f.get('no_repeat_days', 7))
         cfg['display']['strip_text_color'] = f.get('strip_text_color', '#ffffff')
+        cfg['display']['sleep_start'] = f.get('sleep_start', '').strip()
+        cfg['display']['sleep_end'] = f.get('sleep_end', '').strip()
 
         cfg.setdefault('weather', {})
         cfg['weather']['api_key'] = f.get('weather_api_key', '')
@@ -129,6 +134,9 @@ def create_app(config=None):
         cfg['sources'].setdefault('nga', {})
         cfg['sources']['nga']['enabled'] = f.get('nga_enabled', 'false') == 'true'
         cfg['sources']['nga']['cache_size'] = int(f.get('nga_cache_size', 50))
+
+        cfg.setdefault('telegram', {})
+        cfg['telegram']['bot_token'] = f.get('telegram_bot_token', '')
 
         _CONFIG_PATH.write_text(yaml.dump(cfg, default_flow_style=False, allow_unicode=True))
         return redirect(url_for('config_get'))
@@ -159,6 +167,83 @@ def create_app(config=None):
         if not preview_path.exists():
             return 'No preview available', 404
         return send_file(str(preview_path), mimetype='image/png')
+
+    # ------------------------------------------------------------------ #
+    # Photo gallery                                                        #
+    # ------------------------------------------------------------------ #
+
+    def _local_photo_paths():
+        """Return deduplicated list of (path, filename) for local + upload sources."""
+        from sources.local import LocalFolderSource
+        from sources.upload import UploadSource
+        cfg = _load_config()
+        sources_cfg = cfg.get('sources', {})
+        local_path = sources_cfg.get('local_folder', {}).get('path', 'data/uploads')
+        seen = set()
+        photos = []
+        for source in [LocalFolderSource({'path': local_path}), UploadSource({'path': local_path})]:
+            for p in source.list_photos():
+                rp = p.resolve()
+                if rp not in seen:
+                    seen.add(rp)
+                    photos.append(p)
+        return sorted(photos, key=lambda p: p.name.lower())
+
+    @app.get('/gallery')
+    def gallery():
+        photos = [{'filename': p.name, 'filepath': str(p)} for p in _local_photo_paths()]
+        return render_template('gallery.html', photos=photos)
+
+    @app.get('/thumb/<filename>')
+    def thumb(filename):
+        from werkzeug.utils import secure_filename as _secure
+        from PIL import ImageOps as _ImageOps
+        safe = _secure(filename)
+        if not safe:
+            return 'Invalid filename', 400
+        thumb_dir = Path('data/cache/thumbs')
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = thumb_dir / safe
+        if not cache_path.exists():
+            original = next((p for p in _local_photo_paths() if p.name == safe), None)
+            if original is None:
+                return 'Not found', 404
+            try:
+                img = Image.open(original)
+                img = _ImageOps.exif_transpose(img)
+                img.thumbnail((200, 150), Image.LANCZOS)
+                img = img.convert('RGB')
+                img.save(str(cache_path), 'JPEG', quality=70)
+            except Exception as exc:
+                logger.warning('Thumbnail generation failed for %s: %s', safe, exc)
+                return 'Error generating thumbnail', 500
+        return send_file(str(cache_path), mimetype='image/jpeg')
+
+    @app.post('/delete/<filename>')
+    def delete_photo(filename):
+        from werkzeug.utils import secure_filename as _secure
+        safe = _secure(filename)
+        if not safe:
+            return 'Invalid filename', 400
+        cfg = _load_config()
+        allowed_root = Path(
+            cfg.get('sources', {}).get('local_folder', {}).get('path', 'data/uploads')
+        ).resolve()
+        original = next((p for p in _local_photo_paths() if p.name == safe), None)
+        if original is None:
+            return redirect(url_for('gallery'))
+        # Path traversal guard: only allow deletion within the known source folder
+        if not original.resolve().is_relative_to(allowed_root):
+            return 'Forbidden', 403
+        try:
+            original.unlink()
+        except Exception as exc:
+            logger.warning('Delete failed for %s: %s', safe, exc)
+        # Remove cached thumbnail if present
+        thumb = Path('data/cache/thumbs') / safe
+        if thumb.exists():
+            thumb.unlink(missing_ok=True)
+        return redirect(url_for('gallery'))
 
     @app.get('/api/status')
     def api_status():
