@@ -18,15 +18,16 @@
     td:last-child { text-align: right; color: #aaa; }
     .on-time { color: #4caf50; }
     .delayed  { color: #f44336; }
-    form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    input[type=file] { flex: 1; color: #ccc; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 0.3rem; }
     button, .btn {
       background: #333; color: #eee; border: 1px solid #555; border-radius: 4px;
       padding: 0.4rem 0.9rem; cursor: pointer; font-family: monospace; font-size: 0.9rem;
-      text-decoration: none;
+      text-decoration: none; white-space: nowrap;
     }
     button:hover, .btn:hover { background: #444; }
-    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+    .actions { display: flex; flex-direction: column; gap: 0.6rem; }
+    .action-row { display: flex; gap: 0.6rem; align-items: center; }
+    .upload-row { display: flex; gap: 0.6rem; align-items: center; }
+    input[type=file] { flex: 1; color: #ccc; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 0.3rem; font-family: monospace; font-size: 0.9rem; }
     .dim { color: #666; font-size: 0.8rem; }
 
     /* Status indicator */
@@ -117,15 +118,17 @@
 <section>
   <h2>Actions</h2>
   <div class="actions">
-    <form method="post" action="/next">
-      <button type="submit">Next Photo</button>
-    </form>
-    <form method="post" action="/upload" enctype="multipart/form-data">
+    <div class="action-row">
+      <form method="post" action="/next">
+        <button type="submit">Next Photo</button>
+      </form>
+      <a class="btn" href="/preview" target="_blank">Preview</a>
+      <a class="btn" href="/config">Config</a>
+    </div>
+    <form method="post" action="/upload" enctype="multipart/form-data" class="upload-row">
       <input type="file" name="photo" accept="image/*" required>
       <button type="submit">Upload</button>
     </form>
-    <a class="btn" href="/config">Config</a>
-    <a class="btn" href="/preview" target="_blank">Preview</a>
   </div>
 </section>
 
