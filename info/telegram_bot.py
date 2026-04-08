@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import threading
 from pathlib import Path
@@ -20,6 +21,9 @@ class TelegramBot:
         logger.info('Telegram bot started')
 
     def _run(self):
+        # python-telegram-bot v20+ is async-first; create a fresh event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         try:
             from telegram.ext import Application, MessageHandler, filters
         except ImportError:
@@ -34,16 +38,21 @@ class TelegramBot:
             logger.error('Telegram bot error: %s', exc)
 
     async def _handle_photo(self, update, context):
-        photo = update.message.photo[-1]  # largest available size
-        file = await context.bot.get_file(photo.file_id)
-        self._upload_folder.mkdir(parents=True, exist_ok=True)
-        dest = self._upload_folder / f'telegram_{photo.file_id}.jpg'
-        await file.download_to_drive(str(dest))
-        logger.info('Telegram photo saved: %s', dest)
-        self._next_event.set()
-        await update.message.reply_text('Photo received! Displaying now.')
+        await update.message.reply_text('Got it! Downloading...')
+        try:
+            photo = update.message.photo[-1]  # largest available size
+            file = await context.bot.get_file(photo.file_id)
+            self._upload_folder.mkdir(parents=True, exist_ok=True)
+            dest = self._upload_folder / f'telegram_{photo.file_id}.jpg'
+            await file.download_to_drive(str(dest))
+            logger.info('Telegram photo saved: %s', dest)
+            self._next_event.set()
+            await update.message.reply_text('Queued! It will appear on the frame at the next refresh.')
+        except Exception as exc:
+            logger.error('Failed to save Telegram photo: %s', exc)
+            await update.message.reply_text(f'Sorry, something went wrong: {exc}')
 
     async def _handle_non_photo(self, update, context):
         await update.message.reply_text(
-            'Send me a photo and I will display it on the frame.'
+            'Hi! Send me a photo and I will display it on the frame.'
         )
