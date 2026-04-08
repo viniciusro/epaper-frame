@@ -65,11 +65,9 @@
     <span class="value">
       {%- set nga = config.get('sources',{}).get('nga',{}).get('enabled') -%}
       {%- set nc  = config.get('sources',{}).get('nextcloud',{}).get('enabled') -%}
-      {%- set loc = config.get('sources',{}).get('local_folder',{}).get('enabled', true) -%}
       {%- if nga -%}National Gallery of Art
-      {%- elif nc and loc -%}Nextcloud + Local folder
       {%- elif nc -%}Nextcloud
-      {%- else -%}Local folder
+      {%- else -%}Local folder + Uploads
       {%- endif -%}
     </span>
   </div>
