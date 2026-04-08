@@ -20,16 +20,28 @@ logger = logging.getLogger(__name__)
 
 _INFO_REFRESH_INTERVAL = 30  # seconds between info polling loops
 _FIRST_BOOT_FLAG = Path('data/first_boot')
-_WPA_SUPPLICANT = Path('/etc/wpa_supplicant/wpa_supplicant.conf')
 
 
 def _wifi_configured() -> bool:
-    """Return True if wpa_supplicant.conf has at least one network block."""
+    """Return True if a home WiFi (infrastructure/station) connection exists.
+
+    On Bookworm, NetworkManager manages WiFi. We check for any connection
+    profile of type wifi in infrastructure mode (not our own AP hotspot).
+    Falls back to True on non-Pi environments so dev mode is unaffected.
+    """
     try:
-        text = _WPA_SUPPLICANT.read_text()
-        return 'network={' in text
+        import subprocess as _sp
+        out = _sp.check_output(
+            ['nmcli', '-t', '-f', 'TYPE,NAME', 'connection', 'show'],
+            stderr=_sp.DEVNULL, timeout=5
+        ).decode()
+        for line in out.splitlines():
+            ctype, _, name = line.partition(':')
+            if ctype == 'wifi' and name != 'epaper-hotspot':
+                return True
+        return False
     except Exception:
-        return True  # assume configured on non-Pi environments
+        return True  # assume configured on non-Pi / dev environments
 
 
 def _hex_to_rgb(hex_color: str) -> tuple:

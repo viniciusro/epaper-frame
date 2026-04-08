@@ -173,26 +173,19 @@ def create_app(config=None):
             return []
 
     def _write_wpa_network(ssid: str, password: str):
-        """Append a network block to wpa_supplicant.conf via sudo tee."""
-        block = (
-            f'\nnetwork={{\n'
-            f'    ssid="{ssid}"\n'
-            f'    psk="{password}"\n'
-            f'    key_mgmt=WPA-PSK\n'
-            f'}}\n'
-        )
-        # Read existing content, append block, write back via sudo tee
-        wpa_path = '/etc/wpa_supplicant/wpa_supplicant.conf'
-        try:
-            existing = Path(wpa_path).read_text()
-        except Exception:
-            existing = 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\ncountry=DE\n'
-        new_content = existing + block
+        """Add a WiFi network via nmcli (Bookworm uses NetworkManager)."""
+        # Remove any existing connection with the same SSID first
         subprocess.run(
-            ['sudo', 'tee', wpa_path],
-            input=new_content.encode(),
+            ['sudo', 'nmcli', 'con', 'delete', ssid],
+            stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL
+        )
+        subprocess.run(
+            ['sudo', 'nmcli', 'dev', 'wifi', 'connect', ssid,
+             'password', password, 'ifname', 'wlan0'],
             check=True,
             stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=30,
         )
 
     @app.get('/wifi')
