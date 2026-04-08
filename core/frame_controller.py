@@ -2,7 +2,6 @@ import logging
 import threading
 import time
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import web.app as webapp
 from core.display import Display
@@ -19,29 +18,6 @@ from sources.upload import UploadSource
 logger = logging.getLogger(__name__)
 
 _INFO_REFRESH_INTERVAL = 30  # seconds between info polling loops
-_FIRST_BOOT_FLAG = Path('data/first_boot')
-
-
-def _wifi_configured() -> bool:
-    """Return True if a home WiFi (infrastructure/station) connection exists.
-
-    On Bookworm, NetworkManager manages WiFi. We check for any connection
-    profile of type wifi in infrastructure mode (not our own AP hotspot).
-    Falls back to True on non-Pi environments so dev mode is unaffected.
-    """
-    try:
-        import subprocess as _sp
-        out = _sp.check_output(
-            ['nmcli', '-t', '-f', 'TYPE,NAME', 'connection', 'show'],
-            stderr=_sp.DEVNULL, timeout=5
-        ).decode()
-        for line in out.splitlines():
-            ctype, _, name = line.partition(':')
-            if ctype == 'wifi' and name != 'epaper-hotspot':
-                return True
-        return False
-    except Exception:
-        return True  # assume configured on non-Pi / dev environments
 
 
 def _hex_to_rgb(hex_color: str) -> tuple:
@@ -133,21 +109,6 @@ class FrameController:
     def _display_loop(self):
         """Main display loop — runs forever in the calling thread."""
         logger.info('Display loop started')
-
-        # First-boot: show setup screen until WiFi is configured
-        if not _wifi_configured():
-            logger.warning('No WiFi configured — showing setup screen')
-            _FIRST_BOOT_FLAG.parent.mkdir(parents=True, exist_ok=True)
-            _FIRST_BOOT_FLAG.touch()
-            setup_img = self._renderer.render_setup_screen()
-            self._display.show(setup_img)
-            webapp.update_state(status='setup')
-            # Wait until wifi POST saves credentials and fires the event
-            self._next_event.wait()
-            self._next_event.clear()
-            logger.info('WiFi credentials saved — rebooting')
-            import subprocess
-            subprocess.run(['sudo', 'reboot'], check=False)
 
         while True:
             try:

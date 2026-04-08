@@ -15,18 +15,6 @@ Displays photos from a local folder, web uploads, Nextcloud, or the National Gal
 **Display colors:** black, white, red, green, blue, yellow — Floyd-Steinberg dithered.  
 **Refresh time:** ~24 seconds (full global refresh).
 
-## WiFi & Hotspot
-
-The Pi runs in **AP+STA mode** — it connects to your home WiFi and simultaneously broadcasts its own `epaper-frame` hotspot. This lets you manage the frame from your phone anywhere, even away from home.
-
-**Default hotspot credentials:**
-- SSID: `epaper-frame`
-- Password: `epaperframe`
-
-**First-boot setup:** If no home WiFi is configured, the display shows setup instructions. Connect your phone to the `epaper-frame` hotspot and open `http://192.168.4.1:5000/wifi` to pick your network.
-
----
-
 ## Setup
 
 ### 1. Prepare the Pi
@@ -52,7 +40,7 @@ sudo bash deployment/pi_setup.sh
 sudo reboot
 ```
 
-This installs all dependencies, configures the AP+STA hotspot (`epaper-frame`), sets up the systemd service, and prepares the Pi for first boot.
+This installs all dependencies, sets up the systemd service, and enables SPI.
 
 ### 3. Deploy updates (from Windows)
 
