@@ -133,6 +133,7 @@ def create_app(config=None):
         cfg['transit']['refresh_interval_minutes'] = int(f.get('transit_refresh', 2))
 
         cfg.setdefault('sources', {}).setdefault('nextcloud', {})
+        cfg['sources']['nextcloud']['enabled'] = 'nextcloud_enabled' in f
         cfg['sources']['nextcloud']['url'] = f.get('nextcloud_url', '')
         cfg['sources']['nextcloud']['username'] = f.get('nextcloud_username', '')
         if f.get('nextcloud_password'):
