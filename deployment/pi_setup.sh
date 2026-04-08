@@ -21,6 +21,23 @@ sudo raspi-config nonint do_spi 0
 echo ">>> SPI enabled"
 
 # ------------------------------------------------------------------ #
+# Self-signed TLS certificate for HTTPS                                #
+# ------------------------------------------------------------------ #
+mkdir -p "$REPO_DIR/data/ssl"
+if [ ! -f "$REPO_DIR/data/ssl/cert.pem" ]; then
+    openssl req -x509 -newkey rsa:2048 -nodes \
+        -keyout "$REPO_DIR/data/ssl/key.pem" \
+        -out    "$REPO_DIR/data/ssl/cert.pem" \
+        -days 3650 \
+        -subj "/CN=epaper-frame" \
+        -addext "subjectAltName=IP:192.168.4.1,DNS:epaper-frame.local"
+    chmod 600 "$REPO_DIR/data/ssl/key.pem"
+    echo ">>> TLS certificate generated (valid 10 years)"
+else
+    echo ">>> TLS certificate already exists, skipping"
+fi
+
+# ------------------------------------------------------------------ #
 # Python venv                                                          #
 # ------------------------------------------------------------------ #
 cd "$REPO_DIR"

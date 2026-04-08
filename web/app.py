@@ -39,6 +39,17 @@ def update_state(**kwargs):
         _state.update(kwargs)
 
 
+_CERT_FILE = Path('data/ssl/cert.pem')
+_KEY_FILE  = Path('data/ssl/key.pem')
+
+
+def ssl_context():
+    """Return (cert, key) tuple if cert files exist, else None (plain HTTP)."""
+    if _CERT_FILE.exists() and _KEY_FILE.exists():
+        return (str(_CERT_FILE), str(_KEY_FILE))
+    return None
+
+
 def create_app(config=None):
     app = Flask(__name__, template_folder='templates')
 
@@ -174,4 +185,4 @@ def create_app(config=None):
 if __name__ == '__main__':
     cfg = _load_config()
     port = cfg.get('web', {}).get('port', 5000)
-    create_app(cfg).run(host='0.0.0.0', port=port, debug=True)
+    create_app(cfg).run(host='0.0.0.0', port=port, debug=True, ssl_context=ssl_context())

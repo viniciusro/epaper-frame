@@ -81,7 +81,9 @@ class FrameController:
             import logging as _logging
             _logging.getLogger('werkzeug').setLevel(_logging.WARNING)
             app = webapp.create_app(cfg)
-            app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+            ssl_context = webapp.ssl_context()
+            app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False,
+                    ssl_context=ssl_context)
 
         t = threading.Thread(target=_run, daemon=True, name='flask')
         t.start()

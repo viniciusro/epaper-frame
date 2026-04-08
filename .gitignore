@@ -209,6 +209,7 @@ __marimo__/
 # epaper-frame project
 config.yaml
 data/cache/
+data/ssl/
 *.db
 drivers/*.so
 logs/*.log
