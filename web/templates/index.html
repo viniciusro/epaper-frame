@@ -56,9 +56,22 @@
       {% else %}idle{% endif %}
     </span>
   </div>
+  <div style="padding:0.2rem 0;">
+    <span class="label">Current photo</span><br>
+    <span class="value" style="word-break:break-all;font-size:0.85rem;">{{ last_photo or '—' }}</span>
+  </div>
   <div class="row">
-    <span class="label">Current photo</span>
-    <span class="value" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;direction:rtl;text-align:left" title="{{ last_photo or '' }}">{{ last_photo or '—' }}</span>
+    <span class="label">Photo source</span>
+    <span class="value">
+      {%- set nga = config.get('sources',{}).get('nga',{}).get('enabled') -%}
+      {%- set nc  = config.get('sources',{}).get('nextcloud',{}).get('enabled') -%}
+      {%- set loc = config.get('sources',{}).get('local_folder',{}).get('enabled', true) -%}
+      {%- if nga -%}National Gallery of Art
+      {%- elif nc and loc -%}Nextcloud + Local folder
+      {%- elif nc -%}Nextcloud
+      {%- else -%}Local folder
+      {%- endif -%}
+    </span>
   </div>
   {% if sleeping_until %}
   <div class="row">

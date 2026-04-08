@@ -150,9 +150,11 @@
   <fieldset>
     <legend>Nextcloud (WebDAV)</legend>
     <div class="field">
-      <label style="display:flex;align-items:center;gap:0.5rem;color:#ccc;font-size:0.85rem">
-        <input type="checkbox" name="nextcloud_enabled" {% if config.get('sources',{}).get('nextcloud',{}).get('enabled') %}checked{% endif %}> Enabled
-      </label>
+      <label>Enabled</label>
+      <select name="nextcloud_enabled" style="background:#1e1e1e;border:1px solid #444;color:#eee;border-radius:4px;padding:0.35rem 0.5rem;font-family:monospace;font-size:0.9rem;">
+        <option value="true"  {% if config.get('sources',{}).get('nextcloud',{}).get('enabled') %}selected{% endif %}>Yes</option>
+        <option value="false" {% if not config.get('sources',{}).get('nextcloud',{}).get('enabled') %}selected{% endif %}>No</option>
+      </select>
     </div>
     <div class="field">
       <label>Server URL</label>
