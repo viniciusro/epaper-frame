@@ -56,7 +56,10 @@
       {% else %}idle{% endif %}
     </span>
   </div>
-  <div class="row"><span class="label">Current photo</span><span class="value">{{ last_photo or '—' }}</span></div>
+  <div class="row">
+    <span class="label">Current photo</span>
+    <span class="value" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;direction:rtl;text-align:left" title="{{ last_photo or '' }}">{{ last_photo or '—' }}</span>
+  </div>
   {% if sleeping_until %}
   <div class="row">
     <span class="label">Sleeping until</span>
@@ -79,6 +82,7 @@
   <h2>Weather</h2>
   {% if weather %}
   <div class="row"><span class="label">{{ weather.city }}</span><span class="value">{{ weather.temp }}°C — {{ weather.condition }}</span></div>
+  {% if air %}<div class="row"><span class="label">Air quality</span><span class="value">{{ air.label }}</span></div>{% endif %}
   <div class="row"><span class="label">updated</span><span class="value dim">{{ weather.updated }}</span></div>
   {% else %}
   <span class="dim">No weather data</span>

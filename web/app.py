@@ -87,6 +87,7 @@ def create_app(config=None):
             status=state.get('status', 'idle'),
             sleeping_until=state.get('sleeping_until'),
             weather=state.get('weather'),
+            air=state.get('air'),
             transit=state.get('transit', []),
             pi=state.get('pi', {}),
             config=cfg,
@@ -194,7 +195,7 @@ def create_app(config=None):
         photos = [{'filename': p.name, 'filepath': str(p)} for p in _local_photo_paths()]
         return render_template('gallery.html', photos=photos)
 
-    @app.get('/thumb/<filename>')
+    @app.get('/thumb/<path:filename>')
     def thumb(filename):
         from werkzeug.utils import secure_filename as _secure
         from PIL import ImageOps as _ImageOps
@@ -219,7 +220,7 @@ def create_app(config=None):
                 return 'Error generating thumbnail', 500
         return send_file(str(cache_path), mimetype='image/jpeg')
 
-    @app.post('/delete/<filename>')
+    @app.post('/delete/<path:filename>')
     def delete_photo(filename):
         from werkzeug.utils import secure_filename as _secure
         safe = _secure(filename)
