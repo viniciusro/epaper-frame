@@ -160,7 +160,7 @@
   <div class="actions">
     <div class="action-row">
       <form method="post" action="/next">
-        <button type="submit">Next Photo</button>
+        <button type="submit">{{ 'Wake Up' if status == 'sleeping' else 'Next Photo' }}</button>
       </form>
       <a class="btn" href="/preview" target="_blank">Preview</a>
       <a class="btn" href="/gallery">Gallery</a>

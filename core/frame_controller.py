@@ -158,8 +158,11 @@ class FrameController:
                 webapp.update_state(status='sleeping', sleeping_until=sleep_end)
                 self._display.clear()
                 while _in_sleep_window(sleep_start, sleep_end):
-                    self._next_event.wait(timeout=60)
+                    woken = self._next_event.wait(timeout=60)
                     self._next_event.clear()
+                    if woken:
+                        logger.info('Sleep interrupted by user — waking early')
+                        break
                 webapp.update_state(status='idle', sleeping_until=None)
                 logger.info('Display waking up')
                 continue  # skip to next iteration → run display cycle immediately
