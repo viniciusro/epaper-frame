@@ -1,0 +1,35 @@
+#!/bin/bash
+# NetworkManager dispatcher script
+# Brings up epaper-hotspot AP on a virtual wlan0_ap interface
+# whenever wlan0 connects to a home network.
+
+IFACE="$1"
+ACTION="$2"
+
+[ "$IFACE" = "wlan0" ] || exit 0
+
+case "$ACTION" in
+    up)
+        # Only act when wlan0 comes up in station mode (not AP mode)
+        CONN_TYPE=$(nmcli -g 802-11-wireless.mode connection show "$(nmcli -g GENERAL.CONNECTION dev show wlan0)" 2>/dev/null)
+        [ "$CONN_TYPE" = "ap" ] && exit 0
+
+        # Create virtual AP interface if it doesn't exist
+        if ! ip link show wlan0_ap &>/dev/null; then
+            iw dev wlan0 interface add wlan0_ap type __ap 2>/dev/null || true
+        fi
+
+        # Bring up hotspot on the virtual interface
+        sleep 2
+        nmcli con modify epaper-hotspot 802-11-wireless.cloned-mac-address "$(cat /sys/class/net/wlan0/address | sed 's/\(..\)$/a\1/')" 2>/dev/null || true
+        nmcli device set wlan0_ap managed yes 2>/dev/null || true
+        nmcli con modify epaper-hotspot connection.interface-name wlan0_ap
+        nmcli con up epaper-hotspot ifname wlan0_ap 2>/dev/null || true
+        ;;
+    down)
+        nmcli con down epaper-hotspot 2>/dev/null || true
+        iw dev wlan0_ap del 2>/dev/null || true
+        ;;
+esac
+
+exit 0

@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Bash(pip install:*)",
+      "Bash(pytest tests/test_renderer.py -v)",
+      "Bash(start:*)",
+      "Bash(pytest tests/ -v)",
+      "Bash(curl -s http://localhost:5000/api/status)",
+      "Bash(curl -s http://localhost:5000/)",
+      "Bash(set EPAPER_MOCK=1)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(EPAPER_MOCK=1 python -m pytest tests/ -v)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(EPAPER_MOCK=1 python -m pytest tests/ -q)",
+      "Bash(pip show:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "WebFetch(domain:www.nga.gov)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/main/data/published_images.csv\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/NationalGalleryOfArt/opendata/main/data/objects.csv\")",
+      "Bash(EPAPER_MOCK=1 python -m pytest tests/test_sources.py -v)",
+      "Bash(ssh-keygen -R 192.168.188.94)",
+      "Bash(ssh-copy-id:*)",
+      "Bash(ssh-keygen -R epaper-frame.local)",
+      "Bash(git rm:*)",
+      "Bash(python:*)",
+      "Bash(./deploy.sh:*)",
+      "Bash(curl -s \"https://www.mvg.de/api/bgw-pt/v3/departures?globalId=de:09162:1740&limit=80\" -H \"Accept: application/json\")"
+    ]
+  }
+}
