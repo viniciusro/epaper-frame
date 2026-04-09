@@ -141,6 +141,12 @@
   <div class="row"><span class="label">CPU temp</span><span class="value">
     {{ pi.cpu_temp ~ '°C' if pi.cpu_temp is not none else '—' }}
   </span></div>
+  <div class="row"><span class="label">CPU load</span><span class="value">
+    {{ pi.cpu_load ~ '%' if pi.cpu_load is not none else '—' }}
+  </span></div>
+  <div class="row"><span class="label">SD card used</span><span class="value">
+    {{ pi.disk_used_pct ~ '%' if pi.disk_used_pct is not none else '—' }}
+  </span></div>
   {% else %}
   <span class="dim">No Pi stats</span>
   {% endif %}

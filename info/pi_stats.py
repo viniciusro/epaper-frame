@@ -13,6 +13,8 @@ class PiStats:
         return {
             'ip': _get_ip(),
             'cpu_temp': _get_cpu_temp(),
+            'cpu_load': _get_cpu_load(),
+            'disk_used_pct': _get_disk_used_pct(),
             'hostname': socket.gethostname(),
             'updated': datetime.now().strftime('%H:%M'),
         }
@@ -49,5 +51,26 @@ def _get_cpu_temp():
     try:
         raw = _TEMP_PATH.read_text().strip()
         return round(int(raw) / 1000, 1)
+    except Exception:
+        return None
+
+
+def _get_cpu_load():
+    """Return 1-minute CPU load average as a percentage (0-100), or None."""
+    try:
+        import os
+        load1, _, _ = os.getloadavg()
+        cpu_count = os.cpu_count() or 1
+        return round(load1 / cpu_count * 100, 1)
+    except Exception:
+        return None
+
+
+def _get_disk_used_pct():
+    """Return used percentage of the root filesystem (SD card), or None."""
+    try:
+        import shutil
+        usage = shutil.disk_usage('/')
+        return round(usage.used / usage.total * 100, 1)
     except Exception:
         return None
