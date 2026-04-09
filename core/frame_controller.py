@@ -85,8 +85,13 @@ class FrameController:
         self._start_web_thread()
         self._telegram.start()
 
-        # Block here
-        self._display_loop()
+        # Block here — catch crash and alert via Telegram before re-raising
+        try:
+            self._display_loop()
+        except Exception:
+            logger.exception('Display loop crashed')
+            self._telegram.send_alert('❌ epaper-frame: display loop crashed — service will restart.')
+            raise
 
     def trigger_next(self):
         """Skip the current sleep and advance to the next photo immediately."""
@@ -130,6 +135,7 @@ class FrameController:
 
             if (datetime.now() - self._last_display_at).total_seconds() >= 86400:
                 logger.warning('24h watchdog: no display refresh in 24h, forcing update')
+                self._telegram.send_alert('⚠️ epaper-frame: no display refresh in 24h — forcing update now.')
                 self._next_event.set()
 
             time.sleep(_INFO_REFRESH_INTERVAL)
@@ -213,10 +219,11 @@ class FrameController:
         logger.info('Selected photo: %s', photo_path)
 
         live_cfg = webapp._load_config()
-        hex_color = live_cfg.get('display', {}).get('strip_text_color', '#ffffff')
-        strip_fg = _hex_to_rgb(hex_color)
+        hex_color = live_cfg.get('display', {}).get('strip_text_color', 'auto')
+        auto_color = (hex_color == 'auto')
+        strip_fg = (255, 255, 255) if auto_color else _hex_to_rgb(hex_color)
         strip_data['strip_cfg'] = live_cfg.get('display', {}).get('strip', {})
-        rendered = self._renderer.render(photo_path, strip_data, strip_fg=strip_fg)
+        rendered = self._renderer.render(photo_path, strip_data, strip_fg=strip_fg, auto_color=auto_color)
 
         # Push to display
         webapp.update_state(status='refreshing', last_photo=str(photo_path))

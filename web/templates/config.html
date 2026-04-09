@@ -88,13 +88,23 @@
              style="max-width:100px" placeholder="08:00">
     </div>
     <div class="field">
+      {% set cur_color = config.get('display', {}).get('strip_text_color', 'auto') %}
+      {% set is_custom = cur_color not in ('auto', '#ffffff', '#000000') %}
       <label>Strip text color</label>
-      <div class="color-row">
+      <select name="strip_text_color_mode" id="strip_color_mode"
+        style="background:#1e1e1e;border:1px solid #444;color:#eee;border-radius:4px;padding:0.35rem 0.5rem;font-family:monospace;font-size:0.9rem;margin-bottom:0.4rem;"
+        onchange="document.getElementById('custom_color_row').style.display=this.value==='custom'?'flex':'none'">
+        <option value="auto"    {% if cur_color == 'auto'    %}selected{% endif %}>Auto (detect from photo)</option>
+        <option value="#ffffff" {% if cur_color == '#ffffff'  %}selected{% endif %}>Always white</option>
+        <option value="#000000" {% if cur_color == '#000000'  %}selected{% endif %}>Always black</option>
+        <option value="custom"  {% if is_custom               %}selected{% endif %}>Custom color</option>
+      </select>
+      <div class="color-row" id="custom_color_row" style="display:{{ 'flex' if is_custom else 'none' }}">
         <input type="color" id="color_picker"
-               value="{{ config.get('display', {}).get('strip_text_color', '#ffffff') }}"
+               value="{{ cur_color if not cur_color == 'auto' else '#ffffff' }}"
                oninput="document.getElementById('strip_text_color').value=this.value">
         <input type="text" id="strip_text_color" name="strip_text_color" class="color-hex"
-               value="{{ config.get('display', {}).get('strip_text_color', '#ffffff') }}"
+               value="{{ cur_color if not cur_color == 'auto' else '#ffffff' }}"
                oninput="document.getElementById('color_picker').value=this.value">
       </div>
     </div>

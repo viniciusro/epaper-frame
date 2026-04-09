@@ -121,7 +121,10 @@ def create_app(config=None):
         cfg.setdefault('display', {})
         cfg['display']['interval_minutes'] = int(f.get('interval_minutes', 60))
         cfg['display']['no_repeat_days'] = int(f.get('no_repeat_days', 7))
-        cfg['display']['strip_text_color'] = f.get('strip_text_color', '#ffffff')
+        color_mode = f.get('strip_text_color_mode', 'auto')
+        cfg['display']['strip_text_color'] = (
+            f.get('strip_text_color', '#ffffff') if color_mode == 'custom' else color_mode
+        )
         cfg['display']['sleep_start'] = f.get('sleep_start', '').strip()
         cfg['display']['sleep_end'] = f.get('sleep_end', '').strip()
         cfg['display'].setdefault('strip', {})

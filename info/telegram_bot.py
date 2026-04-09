@@ -3,7 +3,11 @@ import logging
 import threading
 from pathlib import Path
 
+import requests
+
 logger = logging.getLogger(__name__)
+
+_CHAT_ID_FILE = Path('data/telegram_chat_id.txt')
 
 
 class TelegramBot:
@@ -11,6 +15,33 @@ class TelegramBot:
         self._token = config.get('bot_token', '')
         self._upload_folder = Path(upload_folder)
         self._next_event = next_event
+        self._last_chat_id: int | None = self._load_chat_id()
+
+    def _load_chat_id(self) -> int | None:
+        try:
+            return int(_CHAT_ID_FILE.read_text().strip()) if _CHAT_ID_FILE.exists() else None
+        except Exception:
+            return None
+
+    def _save_chat_id(self, chat_id: int):
+        try:
+            _CHAT_ID_FILE.parent.mkdir(parents=True, exist_ok=True)
+            _CHAT_ID_FILE.write_text(str(chat_id))
+        except Exception:
+            logger.warning('Failed to save Telegram chat ID', exc_info=True)
+
+    def send_alert(self, text: str):
+        """Send a text alert to the last known chat. No-op if bot not configured or no chat known."""
+        if not self._token or not self._last_chat_id:
+            return
+        try:
+            requests.post(
+                f'https://api.telegram.org/bot{self._token}/sendMessage',
+                json={'chat_id': self._last_chat_id, 'text': text},
+                timeout=10,
+            )
+        except Exception:
+            logger.warning('Failed to send Telegram alert', exc_info=True)
 
     def start(self):
         if not self._token:
@@ -45,6 +76,10 @@ class TelegramBot:
             logger.error('Telegram bot error: %s', exc)
 
     async def _handle_photo(self, update, context):
+        chat_id = update.effective_chat.id
+        if chat_id != self._last_chat_id:
+            self._last_chat_id = chat_id
+            self._save_chat_id(chat_id)
         await update.message.reply_text('Got it! Downloading...')
         try:
             photo = update.message.photo[-1]  # largest available size
@@ -60,6 +95,10 @@ class TelegramBot:
             await update.message.reply_text(f'Sorry, something went wrong: {exc}')
 
     async def _handle_non_photo(self, update, context):
+        chat_id = update.effective_chat.id
+        if chat_id != self._last_chat_id:
+            self._last_chat_id = chat_id
+            self._save_chat_id(chat_id)
         await update.message.reply_text(
             'Hi! Send me a photo and I will display it on the frame.'
         )

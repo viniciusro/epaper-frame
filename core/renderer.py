@@ -37,6 +37,15 @@ def _make_palette_image():
 
 _PALETTE_IMAGE = _make_palette_image()
 
+
+def _auto_text_color(image: Image.Image) -> tuple:
+    """Return black or white based on average luminance of the bottom STRIP_HEIGHT rows."""
+    strip_region = image.crop((0, HEIGHT - STRIP_HEIGHT, WIDTH, HEIGHT))
+    gray = strip_region.convert('L')
+    avg = sum(gray.getdata()) / (WIDTH * STRIP_HEIGHT)
+    return (0, 0, 0) if avg > 128 else (255, 255, 255)
+
+
 # Cache of rounded (lat, lon) → "City, Country" to avoid repeated Nominatim calls
 _geo_cache: dict[str, str] = {}
 
@@ -131,13 +140,13 @@ class Renderer:
     # Public API                                                           #
     # ------------------------------------------------------------------ #
 
-    def render(self, path, strip_data=None, strip_fg=(255, 255, 255)) -> Image.Image:
+    def render(self, path, strip_data=None, strip_fg=(255, 255, 255), auto_color=False) -> Image.Image:
         """Full pipeline: load → fit → compose → return RGB Image."""
         image = self.load(path)
         sd = dict(strip_data) if strip_data else {}
         if self._last_location:
             sd['location'] = self._last_location
-        return self.compose(image, sd, strip_fg=strip_fg)
+        return self.compose(image, sd, strip_fg=strip_fg, auto_color=auto_color)
 
     def load(self, path) -> Image.Image:
         """Open image, apply EXIF rotation, extract GPS location, return RGB."""
@@ -267,7 +276,7 @@ class Renderer:
         return strip
 
     def compose(self, image: Image.Image, strip_data=None,
-                strip_fg=(255, 255, 255)) -> Image.Image:
+                strip_fg=(255, 255, 255), auto_color=False) -> Image.Image:
         """
         Fit + enhance photo, overlay strip text, compose into 1200x1600 RGB.
         Strip text is drawn directly on the photo — no white bar.
@@ -275,6 +284,9 @@ class Renderer:
         """
         photo = self.fit_image(image)
         photo = self.enhance_for_epaper(photo)
+
+        if auto_color:
+            strip_fg = _auto_text_color(photo)
 
         canvas = photo.convert('RGBA')
         strip = self.render_strip(strip_data, text_color=strip_fg)
