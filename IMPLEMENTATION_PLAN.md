@@ -753,6 +753,74 @@ sudo journalctl -u epaper-frame -f
 
 ---
 
+## Phase 13 — UX Polish & Operational Features
+**Goal:** Quality-of-life improvements added after Phase 12 stabilisation.
+**Environment:** 💻 PC + 🔧 HW
+
+### Step 13.1 — Exclusive source modes
+- [x] `core/shuffler.py`: `next()` enforces NGA → Nextcloud → Local priority strictly; upload always jumps queue in every mode
+- [x] `core/frame_controller.py`: `_build_sources()` only adds sources relevant to active mode (NGA or Nextcloud exclusive; local+upload otherwise)
+- [x] `web/templates/index.html`: Photo source row shows correct active mode label
+
+### Step 13.2 — Favicon
+- [x] `web/static/favicon.ico`: generated with Pillow — dark background, picture frame, amber photo area; 16/32/48px sizes
+- [x] All HTML templates reference `/static/favicon.ico`
+
+### Step 13.3 — Display refresh health counter
+- [x] `data/refresh_count.txt`: plain integer incremented after every successful `display.show()`
+- [x] `core/frame_controller.py`: `_increment_refresh_count()` reads, increments, writes, pushes to web state
+- [x] `web/app.py`: reads count on startup; exposes `refresh_count` and `refresh_health_pct` to index template
+- [x] `web/templates/index.html`: "Display health" row — `N / 1,000,000 (X% used)`, color-coded green/orange/red
+
+### Step 13.4 — Auto strip text color
+- [x] `core/renderer.py`: `_auto_text_color()` measures average luminance of bottom 150px of fitted photo, returns black or white
+- [x] `compose()` / `render()` accept `auto_color=True`
+- [x] `web/templates/config.html`: Strip text color replaced with Auto / Always white / Always black / Custom dropdown; custom picker shown only for Custom
+- [x] `web/app.py` config POST: reads `strip_text_color_mode`
+- [x] `config.yaml.example`: default changed to `auto`
+
+### Step 13.5 — Telegram crash alerts
+- [x] `info/telegram_bot.py`: `send_alert(text)` posts plain HTTP to Bot API; `_last_chat_id` persisted to `data/telegram_chat_id.txt`; updated on every incoming message; httpx logger silenced to prevent token leaking into journalctl
+- [x] `core/frame_controller.py`: 24h watchdog sends Telegram alert before forcing refresh; display loop crash sends alert then re-raises
+
+### Step 13.6 — Pi stats expanded
+- [x] `info/pi_stats.py`: added `cpu_load` (1-min load avg / cpu_count × 100) and `disk_used_pct` (shutil.disk_usage('/'))
+- [x] `web/templates/index.html`: CPU load % and SD card used % rows in Pi section
+
+### Step 13.7 — Reboot and restart from web UI
+- [x] `web/app.py`: `POST /reboot` runs `/usr/bin/sudo /sbin/reboot`; `POST /restart` runs `/usr/bin/sudo /usr/bin/systemctl restart epaper-frame`
+- [x] `/etc/sudoers.d/epaper-reboot`: passwordless rules for both commands
+- [x] `web/templates/config.html`: Reboot Pi (red) + Restart Service (blue) buttons, right-aligned, confirm dialogs
+
+### Step 13.8 — Sleep UX improvements
+- [x] Status page Display indicator shows `sleep until HH:MM` in orange during sleep window
+- [x] Next Photo button label changes to **Wake Up** during sleep
+- [x] Sleep loop breaks immediately when user clicks Wake Up (`next_photo_event` checked with `woken` flag)
+
+### Step 13.9 — Live log viewer
+- [x] `web/app.py`: `GET /logs` renders template; `GET /api/logs` runs `/usr/bin/journalctl -u epaper-frame -n 200 --no-pager --output=short-iso`, returns JSON
+- [x] `web/templates/logs.html`: full-height scrollable log, color-coded (red=error, orange=warning, white=info), auto-refresh every 5s, Pause/Follow toggle
+- [x] `pi` user added to `systemd-journal` group — no sudo needed for journalctl
+- [x] Logs link added to status page action row
+
+### Step 13.10 — Nextcloud cache size
+- [x] `sources/nextcloud.py`: `_evict()` removes oldest cached files when count exceeds `cache_size` (default 50); runs after every sync
+- [x] `web/templates/config.html`: cache size field in Nextcloud fieldset
+- [x] `web/app.py` config POST: saves `nextcloud_cache_size`
+
+### Step 13.11 — MVG live direction picker
+- [x] `web/app.py`: `GET /api/transit/directions` queries MVG live for unique destinations matching configured stop + line
+- [x] `web/templates/config.html`: direction filter is now a `<select>` populated via "Load from MVG" button
+
+### Step 13.12 — Nextcloud enabled dropdown + URL fix
+- [x] Nextcloud Enabled changed from checkbox to Yes/No dropdown (consistent with NGA)
+- [x] Server URL field changed from `type="url"` to `type="text"` (browser was stripping the WebDAV path)
+
+### Step 13.13 — Line endings
+- [x] `.gitattributes`: `* text=auto eol=lf` — enforces LF for all text files; binary extensions marked explicitly
+
+---
+
 ## Deferred (Future Phases)
 
 | Feature | Notes |
@@ -761,22 +829,25 @@ sudo journalctl -u epaper-frame -f
 | Google Photos integration | OAuth2 flow, album selection |
 | OTA updates | pull latest from GitHub via web UI |
 | Multiple display profiles | different strip layouts, seasonal themes |
-| ~~Strip color picker~~ | ✅ Done (Phase 12.7) — color picker in Config, live-read on each render |
-| ~~Strip element toggles~~ | ✅ Done (Phase 12.7) — per-element checkboxes in Config |
-| ~~24h forced refresh watchdog~~ | ✅ Done — `_info_refresh_loop` fires `_next_event` if no display in 24h |
+| ~~Strip color picker / auto~~ | ✅ Done (Phase 13.4) |
+| ~~Strip element toggles~~ | ✅ Done (Phase 12.7) |
+| ~~24h forced refresh watchdog~~ | ✅ Done — with Telegram alert (Phase 13.5) |
 | ~~HTTPS / self-signed TLS~~ | ✅ Done (Phase 12.1) |
 | ~~Display sleep schedule~~ | ✅ Done (Phase 12.2) |
 | ~~Air quality (AQI) in strip~~ | ✅ Done (Phase 12.3) |
 | ~~GPS location from EXIF~~ | ✅ Done (Phase 12.4) |
 | ~~Photo gallery (browse + delete)~~ | ✅ Done (Phase 12.5) |
-| ~~Telegram bot (send photo → display)~~ | ✅ Done (Phase 12.6) |
+| ~~Telegram bot (send photo + crash alerts)~~ | ✅ Done (Phase 12.6 + 13.5) |
 | ~~National Gallery of Art source~~ | ✅ Done (Phase 12.8) |
+| ~~Display refresh health counter~~ | ✅ Done (Phase 13.3) |
+| ~~Live log viewer~~ | ✅ Done (Phase 13.9) |
+| ~~Reboot / restart from web UI~~ | ✅ Done (Phase 13.7) |
 | More feature ideas | See `docs/IDEAS.md` |
 
 ### Still pending from Phase 9.4 (resilience tests)
 - [ ] WiFi disconnect → frame keeps displaying last image, recovers when WiFi returns
 - [ ] MVG API down → S8 section shows "unavailable" gracefully
-- [ ] Service restarts automatically after crash
+- [ ] Service restarts automatically after crash (`systemctl status` shows restart count)
 
 ---
 
