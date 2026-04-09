@@ -205,7 +205,7 @@ def create_app(config=None):
         import subprocess as _sp
         try:
             result = _sp.run(
-                ['journalctl', '-u', 'epaper-frame', '-n', '200', '--no-pager', '--output=short-iso'],
+                ['/usr/bin/journalctl', '-u', 'epaper-frame', '-n', '200', '--no-pager', '--output=short-iso'],
                 capture_output=True, text=True, timeout=10,
             )
             return jsonify({'lines': result.stdout.splitlines()})
