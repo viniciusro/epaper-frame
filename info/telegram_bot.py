@@ -70,6 +70,9 @@ class TelegramBot:
                 # Run forever until the thread is killed (daemon)
                 await asyncio.Event().wait()
 
+        # Suppress httpx INFO logs — they print the full bot token URL
+        import logging as _logging
+        _logging.getLogger('httpx').setLevel(_logging.WARNING)
         try:
             asyncio.run(_main())
         except Exception as exc:

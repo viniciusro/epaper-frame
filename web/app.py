@@ -193,7 +193,7 @@ def create_app(config=None):
     @app.post('/reboot')
     def reboot():
         import subprocess
-        subprocess.Popen(['sudo', 'reboot'])
+        subprocess.Popen(['/usr/bin/sudo', '/sbin/reboot'])
         return '<p style="font-family:monospace;background:#111;color:#eee;padding:2rem">Rebooting… reconnect in ~30 seconds. <a href="/" style="color:#888">← Home</a></p>'
 
     @app.get('/logs')
