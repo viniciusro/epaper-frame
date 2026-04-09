@@ -234,10 +234,16 @@
 
 </form>
 
-<form method="post" action="/reboot" style="margin-top:1.5rem;display:flex;justify-content:flex-end;"
-      onsubmit="return confirm('Reboot the Raspberry Pi now?')">
-  <button type="submit" style="background:#2a1a1a;border-color:#883333;color:#f88;">Reboot Pi</button>
-</form>
+<div style="margin-top:1.5rem;display:flex;justify-content:flex-end;gap:0.6rem;">
+  <form method="post" action="/restart"
+        onsubmit="return confirm('Restart the epaper-frame service?')">
+    <button type="submit" style="background:#1a1a2a;border-color:#3355aa;color:#88aaff;">Restart Service</button>
+  </form>
+  <form method="post" action="/reboot"
+        onsubmit="return confirm('Reboot the Raspberry Pi now?')">
+    <button type="submit" style="background:#2a1a1a;border-color:#883333;color:#f88;">Reboot Pi</button>
+  </form>
+</div>
 
 <script>
 function loadDirections() {

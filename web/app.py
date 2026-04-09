@@ -190,6 +190,12 @@ def create_app(config=None):
         next_photo_event.set()
         return redirect(url_for('index'))
 
+    @app.post('/restart')
+    def restart_service():
+        import subprocess
+        subprocess.Popen(['/usr/bin/sudo', '/usr/bin/systemctl', 'restart', 'epaper-frame'])
+        return '<p style="font-family:monospace;background:#111;color:#eee;padding:2rem">Restarting service… reconnect in ~10 seconds. <a href="/" style="color:#888">← Home</a></p>'
+
     @app.post('/reboot')
     def reboot():
         import subprocess
