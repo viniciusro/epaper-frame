@@ -197,6 +197,10 @@
       <label>Sync interval (minutes)</label>
       <input type="number" name="nextcloud_sync_interval" value="{{ config.get('sources', {}).get('nextcloud', {}).get('sync_interval_minutes', 30) }}" min="1">
     </div>
+    <div class="field">
+      <label>Cache size <span class="note">max photos to keep on disk</span></label>
+      <input type="number" name="nextcloud_cache_size" value="{{ config.get('sources', {}).get('nextcloud', {}).get('cache_size', 50) }}" min="1" max="500" style="max-width:100px">
+    </div>
   </fieldset>
 
   <fieldset>

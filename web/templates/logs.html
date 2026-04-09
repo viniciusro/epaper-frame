@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>epaper-frame — logs</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #111; color: #eee; padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.4rem; color: #fff; letter-spacing: 0.05em; }
+    .toolbar { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; flex-wrap: wrap; }
+    .dim { color: #666; font-size: 0.8rem; }
+    button, .btn {
+      background: #333; color: #eee; border: 1px solid #555; border-radius: 4px;
+      padding: 0.35rem 0.8rem; cursor: pointer; font-family: monospace; font-size: 0.85rem;
+      text-decoration: none;
+    }
+    button:hover, .btn:hover { background: #444; }
+    .btn-active { background: #1a3a1a; border-color: #4caf50; color: #4caf50; }
+    #log {
+      background: #0a0a0a; border: 1px solid #333; border-radius: 6px;
+      padding: 0.8rem 1rem; overflow-y: auto; height: calc(100vh - 140px);
+      font-size: 0.78rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+    }
+    .line-err  { color: #f44336; }
+    .line-warn { color: #ff9800; }
+    .line-info { color: #eee; }
+  </style>
+</head>
+<body>
+
+<h1>Logs</h1>
+
+<div class="toolbar">
+  <button id="toggle_btn" onclick="toggleFollow()">⏸ Pause</button>
+  <button onclick="fetchLogs()">↺ Refresh</button>
+  <a class="btn" href="/">← Back</a>
+  <span class="dim" id="status_msg">Loading…</span>
+</div>
+
+<div id="log"></div>
+
+<script>
+  var following = true;
+  var logEl = document.getElementById('log');
+  var statusEl = document.getElementById('status_msg');
+  var toggleBtn = document.getElementById('toggle_btn');
+
+  function classify(line) {
+    var l = line.toLowerCase();
+    if (l.includes('error') || l.includes('exception') || l.includes('critical') || l.includes('traceback')) return 'line-err';
+    if (l.includes('warning') || l.includes('warn')) return 'line-warn';
+    return 'line-info';
+  }
+
+  function fetchLogs() {
+    fetch('/api/logs')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) { statusEl.textContent = 'Error: ' + data.error; return; }
+        logEl.innerHTML = data.lines.map(function(l) {
+          var cls = classify(l);
+          return '<span class="' + cls + '">' + l.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+        }).join('\n');
+        statusEl.textContent = data.lines.length + ' lines';
+        if (following) logEl.scrollTop = logEl.scrollHeight;
+      })
+      .catch(function() { statusEl.textContent = 'fetch failed'; });
+  }
+
+  function toggleFollow() {
+    following = !following;
+    toggleBtn.textContent = following ? '⏸ Pause' : '▶ Follow';
+    toggleBtn.className = following ? 'btn-active' : '';
+    if (following) logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  fetchLogs();
+  setInterval(fetchLogs, 5000);
+</script>
+
+</body>
+</html>

@@ -87,7 +87,27 @@ class NextcloudSource(PhotoSource):
                 logger.warning('Failed to download %s: %s', name, exc)
 
         self._save_meta(meta)
+        self._evict(meta)
         return new_count
+
+    def _evict(self, meta: dict):
+        """Remove oldest cached files if count exceeds cache_size."""
+        cache_size = self.config.get('cache_size', 50)
+        cached = sorted(
+            (p for p in self._cache_dir.iterdir()
+             if p.is_file() and not p.name.startswith('.')
+             and p.suffix.lower() in _IMAGE_SUFFIXES),
+            key=lambda p: p.stat().st_mtime,
+        )
+        for path in cached[:-cache_size] if cache_size < len(cached) else []:
+            try:
+                path.unlink()
+                meta.pop(path.name, None)
+                logger.info('Evicted cached file %s', path.name)
+            except Exception as exc:
+                logger.warning('Failed to evict %s: %s', path.name, exc)
+        if len(cached) > cache_size:
+            self._save_meta(meta)
 
     def list_photos(self):
         if not self._cache_dir.exists():

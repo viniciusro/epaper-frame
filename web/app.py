@@ -158,6 +158,7 @@ def create_app(config=None):
             cfg['sources']['nextcloud']['password'] = f.get('nextcloud_password')
         cfg['sources']['nextcloud']['remote_path'] = f.get('nextcloud_remote_path', '/Photos/frame')
         cfg['sources']['nextcloud']['sync_interval_minutes'] = int(f.get('nextcloud_sync_interval', 30))
+        cfg['sources']['nextcloud']['cache_size'] = int(f.get('nextcloud_cache_size', 50))
 
         cfg['sources'].setdefault('nga', {})
         cfg['sources']['nga']['enabled'] = f.get('nga_enabled', 'false') == 'true'
@@ -194,6 +195,22 @@ def create_app(config=None):
         import subprocess
         subprocess.Popen(['sudo', 'reboot'])
         return '<p style="font-family:monospace;background:#111;color:#eee;padding:2rem">Rebooting… reconnect in ~30 seconds. <a href="/" style="color:#888">← Home</a></p>'
+
+    @app.get('/logs')
+    def logs():
+        return render_template('logs.html')
+
+    @app.get('/api/logs')
+    def api_logs():
+        import subprocess as _sp
+        try:
+            result = _sp.run(
+                ['journalctl', '-u', 'epaper-frame', '-n', '200', '--no-pager', '--output=short-iso'],
+                capture_output=True, text=True, timeout=10,
+            )
+            return jsonify({'lines': result.stdout.splitlines()})
+        except Exception as exc:
+            return jsonify({'lines': [], 'error': str(exc)})
 
     @app.get('/preview')
     def preview():
