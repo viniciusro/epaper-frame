@@ -11,17 +11,30 @@ logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path('config.yaml')
 
+_REFRESH_COUNT_PATH = Path('data/refresh_count.txt')
+_REFRESH_MAX = 1_000_000
+
+
+def _load_refresh_count():
+    try:
+        return int(_REFRESH_COUNT_PATH.read_text().strip()) if _REFRESH_COUNT_PATH.exists() else 0
+    except Exception:
+        return 0
+
+
 # Shared state — written by controller, read by web UI
 _state = {
-    'last_photo': None,       # Path or None
-    'next_update_at': None,   # datetime or None
-    'last_refresh': None,     # datetime or None
-    'status': 'idle',         # idle | rendering | refreshing | sleeping
+    'last_photo': None,           # Path or None
+    'next_update_at': None,       # datetime or None
+    'last_refresh': None,         # datetime or None
+    'status': 'idle',             # idle | rendering | refreshing | sleeping
     'weather': None,
     'transit': [],
     'pi': {},
     'air': None,
-    'sleeping_until': None,   # HH:MM string or None
+    'sleeping_until': None,       # HH:MM string or None
+    'refresh_count': _load_refresh_count(),
+    'refresh_health_pct': round(_load_refresh_count() / _REFRESH_MAX * 100, 2),
 }
 _state_lock = threading.Lock()
 
@@ -91,6 +104,8 @@ def create_app(config=None):
             transit=state.get('transit', []),
             pi=state.get('pi', {}),
             config=cfg,
+            refresh_count=state.get('refresh_count', 0),
+            refresh_health_pct=state.get('refresh_health_pct', 0.0),
         )
 
     @app.get('/config')

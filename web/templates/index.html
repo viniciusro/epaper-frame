@@ -79,6 +79,16 @@
   </div>
   {% endif %}
   <div class="row">
+    <span class="label">Display health</span>
+    <span class="value" style="color:
+      {%- if refresh_health_pct >= 80 %}#f44336
+      {%- elif refresh_health_pct >= 50 %}#ff9800
+      {%- else %}#4caf50{%- endif %}">
+      {{ refresh_count | default(0) | int }} / 1,000,000
+      &nbsp;({{ '%g' | format(refresh_health_pct | default(0)) }}% used)
+    </span>
+  </div>
+  <div class="row">
     <span class="label">Next refresh</span>
     <span class="value" id="countdown">
       {% if next_in is not none %}

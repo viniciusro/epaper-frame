@@ -224,7 +224,30 @@ class FrameController:
         self._display.show(rendered)
 
         self._last_display_at = datetime.now()
-        logger.info('Display cycle complete')
+        count = self._increment_refresh_count()
+        logger.info('Display cycle complete (refresh #%d)', count)
+
+    # ------------------------------------------------------------------ #
+    # Refresh counter                                                      #
+    # ------------------------------------------------------------------ #
+
+    _REFRESH_COUNT_PATH = Path('data/refresh_count.txt')
+    _REFRESH_MAX = 1_000_000
+
+    def _increment_refresh_count(self) -> int:
+        """Read, increment by 1, write back. Returns new count. Never raises."""
+        try:
+            path = self._REFRESH_COUNT_PATH
+            path.parent.mkdir(parents=True, exist_ok=True)
+            count = int(path.read_text().strip()) if path.exists() else 0
+            count += 1
+            path.write_text(str(count))
+            pct = round(count / self._REFRESH_MAX * 100, 2)
+            webapp.update_state(refresh_count=count, refresh_health_pct=pct)
+            return count
+        except Exception:
+            logger.warning('Failed to update refresh count', exc_info=True)
+            return 0
 
     # ------------------------------------------------------------------ #
     # Source factory                                                       #
