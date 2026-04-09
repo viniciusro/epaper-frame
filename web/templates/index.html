@@ -51,9 +51,11 @@
     <span class="value
       {% if status == 'rendering' %}status-rendering pulsing
       {% elif status == 'refreshing' %}status-refreshing pulsing
+      {% elif status == 'sleeping' %}status-rendering
       {% else %}status-idle{% endif %}">
       {% if status == 'rendering' %}rendering…
       {% elif status == 'refreshing' %}refreshing… (~30s)
+      {% elif status == 'sleeping' %}sleep{% if sleeping_until %} until {{ sleeping_until }}{% endif %}
       {% else %}idle{% endif %}
     </span>
   </div>

@@ -189,6 +189,12 @@ def create_app(config=None):
         next_photo_event.set()
         return redirect(url_for('index'))
 
+    @app.post('/reboot')
+    def reboot():
+        import subprocess
+        subprocess.Popen(['sudo', 'reboot'])
+        return '<p style="font-family:monospace;background:#111;color:#eee;padding:2rem">Rebooting… reconnect in ~30 seconds. <a href="/" style="color:#888">← Home</a></p>'
+
     @app.get('/preview')
     def preview():
         preview_path = Path(tempfile.gettempdir()) / 'epaper_preview.png'

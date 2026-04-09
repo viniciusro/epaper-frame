@@ -230,6 +230,11 @@
 
 </form>
 
+<form method="post" action="/reboot" style="margin-top:1.5rem;"
+      onsubmit="return confirm('Reboot the Raspberry Pi?')">
+  <button type="submit" style="background:#2a1a1a;border-color:#883333;color:#f88;">Reboot Pi</button>
+</form>
+
 <script>
 function loadDirections() {
   var btn = document.getElementById('load_directions_btn');
