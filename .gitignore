@@ -213,3 +213,4 @@ data/ssl/
 *.db
 drivers/*.so
 logs/*.log
+deployment/services/99-epaper-hotspot
