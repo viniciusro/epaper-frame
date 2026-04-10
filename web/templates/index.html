@@ -149,6 +149,9 @@
   <div class="row"><span class="label">SD card used</span><span class="value">
     {{ pi.disk_used_pct ~ '%' if pi.disk_used_pct is not none else '—' }}
   </span></div>
+  <div class="row"><span class="label">Core voltage</span><span class="value">
+    {{ '%.4f' | format(pi.core_voltage) ~ ' V' if pi.core_voltage is not none else '—' }}
+  </span></div>
   {% else %}
   <span class="dim">No Pi stats</span>
   {% endif %}

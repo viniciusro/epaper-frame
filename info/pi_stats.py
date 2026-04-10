@@ -15,6 +15,7 @@ class PiStats:
             'cpu_temp': _get_cpu_temp(),
             'cpu_load': _get_cpu_load(),
             'disk_used_pct': _get_disk_used_pct(),
+            'core_voltage': _get_core_voltage(),
             'hostname': socket.gethostname(),
             'updated': datetime.now().strftime('%H:%M'),
         }
@@ -74,3 +75,20 @@ def _get_disk_used_pct():
         return round(usage.used / usage.total * 100, 1)
     except Exception:
         return None
+
+
+def _get_core_voltage():
+    """Return core voltage in volts via vcgencmd, or None if unavailable."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['/usr/bin/vcgencmd', 'measure_volts', 'core'],
+            capture_output=True, text=True, timeout=3,
+        )
+        # output: "volt=1.2000V\n"
+        raw = result.stdout.strip()
+        if raw.startswith('volt=') and raw.endswith('V'):
+            return float(raw[5:-1])
+    except Exception:
+        pass
+    return None
