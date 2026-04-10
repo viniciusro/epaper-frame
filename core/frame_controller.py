@@ -7,7 +7,7 @@ from pathlib import Path
 import web.app as webapp
 from core.display import Display
 from core.renderer import Renderer
-from core.shuffler import Shuffler
+from core.shuffler import Shuffler, SYNC_AHEAD_THRESHOLD
 from info.air_quality import AirQualityFetcher
 from info.pi_stats import PiStats
 from info.telegram_bot import TelegramBot
@@ -217,6 +217,20 @@ class FrameController:
         # Select + render
         photo_path = self._shuffler.next()
         logger.info('Selected photo: %s', photo_path)
+
+        # Proactive sync: if cache source pool is running low, sync now so
+        # the next cycle has fresh photos ready (non-blocking, errors ignored).
+        for source in self._sources:
+            if source.name in ('nextcloud', 'nga'):
+                remaining = self._shuffler.remaining_count(source.name)
+                if remaining <= SYNC_AHEAD_THRESHOLD:
+                    logger.info('%s: only %d photos left in pool, syncing ahead', source.name, remaining)
+                    try:
+                        n = source.sync()
+                        if n:
+                            logger.info('%s: proactive sync added %d photos', source.name, n)
+                    except Exception:
+                        logger.warning('%s proactive sync failed', source.name, exc_info=True)
 
         live_cfg = webapp._load_config()
         hex_color = live_cfg.get('display', {}).get('strip_text_color', 'auto')
