@@ -64,10 +64,7 @@ class FrameController:
         self._next_event = webapp.next_photo_event
 
         # Telegram bot (no-op if token not configured)
-        upload_folder = Path(
-            webapp._load_config().get('sources', {}).get('local_folder', {}).get('path', 'data/uploads')
-        )
-        self._telegram = TelegramBot(config.get('telegram', {}), upload_folder, self._next_event)
+        self._telegram = TelegramBot(config.get('telegram', {}), Path('data/uploads'), self._next_event)
 
         # Watchdog: track last successful display time for 24h forced refresh
         self._last_display_at = datetime.now()
@@ -275,13 +272,13 @@ class FrameController:
         nga_on       = nga_cfg.get('enabled', False)
         nextcloud_on = nextcloud_cfg.get('enabled', False)
 
-        # Upload is always available (photos sent via Telegram or web UI
-        # jump the queue in every mode).
+        # Upload always uses its own dedicated folder (never the local photo
+        # folder) so it doesn't bleed local photos into NGA/Nextcloud modes.
         if upload_cfg.get('enabled', True):
             uc = dict(upload_cfg)
-            uc.setdefault('path', local_cfg.get('path', 'data/uploads'))
+            uc['path'] = 'data/uploads'
             sources.append(UploadSource(uc))
-            logger.info('Source enabled: upload')
+            logger.info('Source enabled: upload (data/uploads)')
 
         if nga_on:
             # NGA mode — only NGA (upload handled above)

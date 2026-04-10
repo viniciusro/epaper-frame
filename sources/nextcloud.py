@@ -51,8 +51,21 @@ class NextcloudSource(PhotoSource):
 
     def sync(self):
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_size = self.config.get('cache_size', 50)
         meta = self._load_meta()
         new_count = 0
+
+        # Count current cached images (excluding meta file)
+        already_cached = [
+            p for p in self._cache_dir.iterdir()
+            if p.is_file() and not p.name.startswith('.')
+            and p.suffix.lower() in _IMAGE_SUFFIXES
+        ]
+        if len(already_cached) >= cache_size:
+            logger.info('Nextcloud cache full (%d/%d), skipping download', len(already_cached), cache_size)
+            # Still evict in case cache_size was reduced since last run
+            self._evict(meta)
+            return 0
 
         try:
             client = self._get_client()
@@ -62,7 +75,11 @@ class NextcloudSource(PhotoSource):
             logger.warning('Nextcloud sync failed: %s', exc)
             return 0
 
+        slots_available = cache_size - len(already_cached)
         for info in remote_files:
+            if new_count >= slots_available:
+                break
+
             name = info.get('path', '').rstrip('/').split('/')[-1]
             if not name or Path(name).suffix.lower() not in _IMAGE_SUFFIXES:
                 continue

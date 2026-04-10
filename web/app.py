@@ -73,9 +73,7 @@ def create_app(config=None):
 
     app.secret_key = config.get('web', {}).get('secret_key') or os.urandom(24)
 
-    upload_folder = Path(
-        config.get('sources', {}).get('local_folder', {}).get('path', 'data/uploads')
-    )
+    upload_folder = Path('data/uploads')
 
     # ------------------------------------------------------------------ #
     # Routes                                                               #
@@ -230,15 +228,15 @@ def create_app(config=None):
     # ------------------------------------------------------------------ #
 
     def _local_photo_paths():
-        """Return deduplicated list of (path, filename) for local + upload sources."""
+        """Return deduplicated list of photos from local folder + uploads folder."""
         from sources.local import LocalFolderSource
         from sources.upload import UploadSource
         cfg = _load_config()
         sources_cfg = cfg.get('sources', {})
-        local_path = sources_cfg.get('local_folder', {}).get('path', 'data/uploads')
+        local_path = sources_cfg.get('local_folder', {}).get('path', '/home/pi/photos')
         seen = set()
         photos = []
-        for source in [LocalFolderSource({'path': local_path}), UploadSource({'path': local_path})]:
+        for source in [LocalFolderSource({'path': local_path}), UploadSource({'path': 'data/uploads'})]:
             for p in source.list_photos():
                 rp = p.resolve()
                 if rp not in seen:
@@ -283,14 +281,16 @@ def create_app(config=None):
         if not safe:
             return 'Invalid filename', 400
         cfg = _load_config()
-        allowed_root = Path(
-            cfg.get('sources', {}).get('local_folder', {}).get('path', 'data/uploads')
+        local_root = Path(
+            cfg.get('sources', {}).get('local_folder', {}).get('path', '/home/pi/photos')
         ).resolve()
+        upload_root = Path('data/uploads').resolve()
         original = next((p for p in _local_photo_paths() if p.name == safe), None)
         if original is None:
             return redirect(url_for('gallery'))
-        # Path traversal guard: only allow deletion within the known source folder
-        if not original.resolve().is_relative_to(allowed_root):
+        # Path traversal guard: only allow deletion within known source folders
+        resolved = original.resolve()
+        if not (resolved.is_relative_to(local_root) or resolved.is_relative_to(upload_root)):
             return 'Forbidden', 403
         try:
             original.unlink()
