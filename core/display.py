@@ -32,17 +32,15 @@ class Display:
             logger.info('[MOCK] Saved preview to %s', out)
             return
         logger.info('Saved preview to %s', out)
-        from drivers.epd13in3E import EPD
-        epd = EPD()
-        epd.Init()
-        epd.display(epd.getbuffer(image))
-        epd.sleep()
+        from drivers.epd13in3E_improved import EPD
+        with EPD() as epd:
+            epd.display(epd.getbuffer(image))
 
     def sleep(self):
         if self.MOCK:
             logger.info('[MOCK] Display sleep (no-op)')
             return
-        from drivers.epd13in3E import EPD
+        from drivers.epd13in3E_improved import EPD
         epd = EPD()
         epd.sleep()
 
