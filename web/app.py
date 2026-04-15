@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 
 import yaml
-from flask import Flask, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Flask, jsonify, make_response, redirect, render_template, request, send_file, send_from_directory, url_for
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,15 @@ def create_app(config=None):
     # ------------------------------------------------------------------ #
     # Routes                                                               #
     # ------------------------------------------------------------------ #
+
+    @app.get('/service-worker.js')
+    def service_worker():
+        response = make_response(
+            send_from_directory(app.static_folder, 'service-worker.js')
+        )
+        response.headers['Service-Worker-Allowed'] = '/'
+        response.headers['Cache-Control'] = 'no-cache'
+        return response
 
     @app.get('/')
     def index():

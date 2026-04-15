@@ -17,6 +17,10 @@ rsync -avz --exclude '.git' \
            --exclude '*.db' \
            ./ "$PI_USER@$PI_HOST:$REMOTE_DIR/"
 
+# Generate PWA icons
+ssh "$PI_USER@$PI_HOST" \
+    "cd $REMOTE_DIR && venv/bin/python scripts/generate_icons.py"
+
 # Install any new dependencies
 ssh "$PI_USER@$PI_HOST" \
     "cd $REMOTE_DIR && source venv/bin/activate && pip install -r requirements.txt -q"
