@@ -20,8 +20,8 @@ CREATE INDEX IF NOT EXISTS idx_path ON history(photo_path);
 CREATE INDEX IF NOT EXISTS idx_source ON history(source);
 """
 
-# Sources that use a finite local cache — show every photo once before repeating.
-_CACHE_SOURCES = {'nga', 'nextcloud'}
+# Sources that show every photo once before repeating (no time-based window).
+_CACHE_SOURCES = {'nga', 'nextcloud', 'upload'}
 
 # When remaining unshown photos for a cache source drop to this count, trigger sync.
 SYNC_AHEAD_THRESHOLD = 10
