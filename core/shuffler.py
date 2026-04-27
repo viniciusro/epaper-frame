@@ -112,7 +112,7 @@ class Shuffler:
 
     def _recently_shown_paths(self) -> set:
         no_repeat_days = self.config.get('display', {}).get('no_repeat_days', 7)
-        cutoff = datetime.now() - timedelta(days=no_repeat_days)
+        cutoff = datetime.utcnow() - timedelta(days=no_repeat_days)
         with self._connect() as conn:
             rows = conn.execute(
                 'SELECT photo_path FROM history WHERE shown_at >= ?',
